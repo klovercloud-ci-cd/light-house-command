@@ -2,6 +2,7 @@ package v1
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/go-bongo/bongo"
 	"github.com/klovercloud/lighthouse-command/core/v1/db"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -23,7 +24,7 @@ type K8sService struct {
 type Service struct {
 	bongo.DocumentBase `bson:",inline"`
 	Obj                K8sService `bson:"obj" json:"obj"`
-	KubeClusterId      string     `json:"kubeClusterId" bson:"kubeClusterId"`
+	AgentName          string     `bson:"agent_name" json:"agent_name"`
 }
 
 func (obj Service) deleteAll() error {
@@ -32,7 +33,7 @@ func (obj Service) deleteAll() error {
 	_, err := coll.DeleteMany(db.GetDmManager().Ctx, query)
 
 	if err != nil {
-		log.Println("Failed to delete service [ERROR]", err)
+		log.Println("Failed to Delete service [ERROR]", err)
 	}
 	return err
 }
@@ -41,12 +42,18 @@ func NewService() KubeObject {
 	return &Service{}
 }
 
-func (obj Service) save() error {
+func (obj Service) Save(extra map[string]string) error {
+	obj.AgentName = extra["agent_name"]
 	if obj.findByNameAndNamespace().Name == "" {
 		coll := db.GetDmManager().Db.Collection(ServiceCollection)
 		_, err := coll.InsertOne(db.GetDmManager().Ctx, obj)
 		if err != nil {
 			log.Println("[ERROR] Insert document:", err.Error())
+			return err
+		}
+	} else {
+		err := obj.Update(obj.findById())
+		if err != nil {
 			return err
 		}
 	}
@@ -57,7 +64,7 @@ func (obj Service) findById() K8sService {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	temp := new(Service)
@@ -76,7 +83,7 @@ func (obj Service) findByNameAndNamespace() K8sService {
 		"$and": []bson.M{
 			{"obj.metadata.name": obj.Obj.Name},
 			{"obj.metadata.namespace": obj.Obj.Namespace},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	temp := new(Service)
@@ -90,11 +97,11 @@ func (obj Service) findByNameAndNamespace() K8sService {
 	return temp.Obj
 }
 
-func (obj Service) delete() error {
+func (obj Service) Delete() error {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	coll := db.GetDmManager().Db.Collection(ServiceCollection)
@@ -106,12 +113,17 @@ func (obj Service) delete() error {
 	return err
 }
 
-func (obj Service) update() error {
+func (obj Service) Update(oldObj interface{}) error {
+	var oldObject Service
+	errorOfUnmarshal := json.Unmarshal([]byte(oldObj.(string)), &oldObject)
+	if errorOfUnmarshal != nil {
+		return errorOfUnmarshal
+	}
 
 	filter := bson.M{
 		"$and": []bson.M{
-			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"obj.metadata.uid": oldObject.Obj.UID},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	update := bson.M{
@@ -193,11 +205,11 @@ func (object Service) findByNamespace() []K8sService {
 	return k8sObjects
 }
 
-func (object Service) findBykubeClusterIdAndNamespace() []K8sService {
+func (object Service) findBykubeAgentNameAndNamespace() []K8sService {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.namespace": object.Obj.Namespace},
-			{"kubeClusterId": object.KubeClusterId},
+			{"agent_name": object.AgentName},
 		},
 	}
 	objects := []Service{}
@@ -219,10 +231,10 @@ func (object Service) findBykubeClusterIdAndNamespace() []K8sService {
 	return k8sObjects
 }
 
-func (object Service) findBykubeClusterId() []K8sService {
+func (object Service) findBykubeAgentName() []K8sService {
 	query := bson.M{
 		"$and": []bson.M{
-			{"kubeClusterId": object.KubeClusterId},
+			{"agent_name": object.AgentName},
 		},
 	}
 	objects := []Service{}
@@ -249,7 +261,7 @@ func (object Service) findByName() K8sService {
 		"$and": []bson.M{
 			{"obj.metadata.name": object.Obj.Name},
 			{"obj.metadata.namespace": object.Obj.Namespace},
-			{"kubeClusterId": object.KubeClusterId},
+			{"agent_name": object.AgentName},
 		},
 	}
 	temp := new(Service)

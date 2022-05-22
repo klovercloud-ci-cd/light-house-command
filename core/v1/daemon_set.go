@@ -2,6 +2,7 @@ package v1
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/go-bongo/bongo"
 	"github.com/klovercloud/lighthouse-command/core/v1/db"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -22,7 +23,7 @@ type K8sDaemonSet struct {
 type DaemonSet struct {
 	bongo.DocumentBase `bson:",inline"`
 	Obj                K8sDaemonSet `bson:"obj" json:"obj"`
-	KubeClusterId      string       `json:"kubeClusterId" bson:"kubeClusterId"`
+	AgentName          string       `bson:"agent_name" json:"agent_name"`
 }
 
 func (obj DaemonSet) deleteAll() error {
@@ -31,7 +32,7 @@ func (obj DaemonSet) deleteAll() error {
 	_, err := coll.DeleteMany(db.GetDmManager().Ctx, query)
 
 	if err != nil {
-		log.Println("Failed to delete daemonSet [ERROR]", err)
+		log.Println("Failed to Delete daemonSet [ERROR]", err)
 	}
 	return err
 }
@@ -39,12 +40,18 @@ func (obj DaemonSet) deleteAll() error {
 func NewDaemonSet() KubeObject {
 	return &DaemonSet{}
 }
-func (obj DaemonSet) save() error {
+func (obj DaemonSet) Save(extra map[string]string) error {
+	obj.AgentName = extra["agent_name"]
 	if obj.findByNameAndNamespace().Name == "" {
 		coll := db.GetDmManager().Db.Collection(DaemonSetCollection)
 		_, err := coll.InsertOne(db.GetDmManager().Ctx, obj)
 		if err != nil {
 			log.Println("[ERROR] Insert document:", err.Error())
+			return err
+		}
+	} else {
+		err := obj.Update(obj.findById())
+		if err != nil {
 			return err
 		}
 	}
@@ -55,7 +62,7 @@ func (obj DaemonSet) findById() K8sDaemonSet {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	temp := new(DaemonSet)
@@ -74,7 +81,7 @@ func (obj DaemonSet) findByNameAndNamespace() K8sDaemonSet {
 		"$and": []bson.M{
 			{"obj.metadata.name": obj.Obj.Name},
 			{"obj.metadata.namespace": obj.Obj.Namespace},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	temp := new(DaemonSet)
@@ -88,11 +95,11 @@ func (obj DaemonSet) findByNameAndNamespace() K8sDaemonSet {
 	return temp.Obj
 }
 
-func (obj DaemonSet) delete() error {
+func (obj DaemonSet) Delete() error {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	coll := db.GetDmManager().Db.Collection(DaemonSetCollection)
@@ -103,12 +110,17 @@ func (obj DaemonSet) delete() error {
 	return err
 }
 
-func (obj DaemonSet) update() error {
+func (obj DaemonSet) Update(oldObj interface{}) error {
+	var oldObject DaemonSet
+	errorOfUnmarshal := json.Unmarshal([]byte(oldObj.(string)), &oldObject)
+	if errorOfUnmarshal != nil {
+		return errorOfUnmarshal
+	}
 
 	filter := bson.M{
 		"$and": []bson.M{
-			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"obj.metadata.uid": oldObject.Obj.UID},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	update := bson.M{
@@ -190,11 +202,11 @@ func (object DaemonSet) findByNamespace() []K8sDaemonSet {
 	return k8sObjects
 }
 
-func (object DaemonSet) findByKubeClusterIdAndNamespace() []K8sDaemonSet {
+func (object DaemonSet) findByKubeAgentNameAndNamespace() []K8sDaemonSet {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.namespace": object.Obj.Namespace},
-			{"kubeClusterId": object.KubeClusterId},
+			{"agent_name": object.AgentName},
 		},
 	}
 	objects := []DaemonSet{}
@@ -216,10 +228,10 @@ func (object DaemonSet) findByKubeClusterIdAndNamespace() []K8sDaemonSet {
 	return k8sObjects
 }
 
-func (object DaemonSet) findBykubeClusterId() []K8sDaemonSet {
+func (object DaemonSet) findBykubeAgentName() []K8sDaemonSet {
 	query := bson.M{
 		"$and": []bson.M{
-			{"kubeClusterId": object.KubeClusterId},
+			{"agent_name": object.AgentName},
 		},
 	}
 	objects := []DaemonSet{}
@@ -246,7 +258,7 @@ func (object DaemonSet) findByName() K8sDaemonSet {
 		"$and": []bson.M{
 			{"obj.metadata.name": object.Obj.Name},
 			{"obj.metadata.namespace": object.Obj.Namespace},
-			{"kubeClusterId": object.KubeClusterId},
+			{"agent_name": object.AgentName},
 		},
 	}
 	temp := new(DaemonSet)

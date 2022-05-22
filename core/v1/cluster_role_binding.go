@@ -2,6 +2,7 @@ package v1
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/go-bongo/bongo"
 	"github.com/klovercloud/lighthouse-command/core/v1/db"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -23,7 +24,7 @@ type k8sClusterRoleBinding struct {
 type ClusterRoleBinding struct {
 	bongo.DocumentBase `bson:",inline"`
 	Obj                k8sClusterRoleBinding `bson:"obj" json:"obj"`
-	KubeClusterId      string                `bson:"kubeClusterId" json:"kubeClusterId"`
+	AgentName          string                `bson:"agent_name" json:"agent_name"`
 }
 
 func (obj ClusterRoleBinding) deleteAll() error {
@@ -32,7 +33,7 @@ func (obj ClusterRoleBinding) deleteAll() error {
 	_, err := coll.DeleteMany(db.GetDmManager().Ctx, query)
 
 	if err != nil {
-		log.Println("Failed to delete crb [ERROR]", err)
+		log.Println("Failed to Delete crb [ERROR]", err)
 	}
 	return err
 }
@@ -41,12 +42,18 @@ func NewClusterRoleBinding() KubeObject {
 	return &ClusterRoleBinding{}
 }
 
-func (obj ClusterRoleBinding) save() error {
+func (obj ClusterRoleBinding) Save(extra map[string]string) error {
+	obj.AgentName = extra["agent_name"]
 	if obj.findByName().Name == "" {
 		coll := db.GetDmManager().Db.Collection(ClusterRoleBindingCollection)
 		_, err := coll.InsertOne(db.GetDmManager().Ctx, obj)
 		if err != nil {
 			log.Println("[ERROR] Insert document:", err.Error())
+			return err
+		}
+	} else {
+		err := obj.Update(obj.findById())
+		if err != nil {
 			return err
 		}
 	}
@@ -57,7 +64,7 @@ func (obj ClusterRoleBinding) findById() k8sClusterRoleBinding {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	temp := new(ClusterRoleBinding)
@@ -76,7 +83,7 @@ func (object ClusterRoleBinding) findByName() k8sClusterRoleBinding {
 		"$and": []bson.M{
 			{"obj.metadata.name": object.Obj.Name},
 			{"obj.metadata.namespace": object.Obj.Namespace},
-			{"kubeClusterId": object.KubeClusterId},
+			{"agent_name": object.AgentName},
 		},
 	}
 	temp := new(ClusterRoleBinding)
@@ -90,10 +97,10 @@ func (object ClusterRoleBinding) findByName() k8sClusterRoleBinding {
 	return temp.Obj
 }
 
-func (object ClusterRoleBinding) findBykubeClusterId() []k8sClusterRoleBinding {
+func (object ClusterRoleBinding) findBykubeAgentName() []k8sClusterRoleBinding {
 	query := bson.M{
 		"$and": []bson.M{
-			{"kubeClusterId": object.KubeClusterId},
+			{"agent_name": object.AgentName},
 		},
 	}
 	objects := []ClusterRoleBinding{}
@@ -115,11 +122,11 @@ func (object ClusterRoleBinding) findBykubeClusterId() []k8sClusterRoleBinding {
 	return k8sObjects
 }
 
-func (obj ClusterRoleBinding) delete() error {
+func (obj ClusterRoleBinding) Delete() error {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	coll := db.GetDmManager().Db.Collection(ClusterRoleBindingCollection)
@@ -130,12 +137,17 @@ func (obj ClusterRoleBinding) delete() error {
 	return err
 }
 
-func (obj ClusterRoleBinding) update() error {
+func (obj ClusterRoleBinding) Update(oldObj interface{}) error {
+	var oldObject ClusterRoleBinding
+	errorOfUnmarshal := json.Unmarshal([]byte(oldObj.(string)), &oldObject)
+	if errorOfUnmarshal != nil {
+		return errorOfUnmarshal
+	}
 
 	filter := bson.M{
 		"$and": []bson.M{
-			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"obj.metadata.uid": oldObject.Obj.UID},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	update := bson.M{
@@ -217,11 +229,11 @@ func (object ClusterRoleBinding) findByNamespace() []k8sClusterRoleBinding {
 	return k8sObjects
 }
 
-func (object ClusterRoleBinding) findBykubeClusterIdAndNamespace() []k8sClusterRoleBinding {
+func (object ClusterRoleBinding) findBykubeAgentNameAndNamespace() []k8sClusterRoleBinding {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.namespace": object.Obj.Namespace},
-			{"kubeClusterId": object.KubeClusterId},
+			{"agent_name": object.AgentName},
 		},
 	}
 	objects := []ClusterRoleBinding{}

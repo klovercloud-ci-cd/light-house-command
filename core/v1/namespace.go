@@ -2,6 +2,7 @@ package v1
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/go-bongo/bongo"
 	"github.com/klovercloud/lighthouse-command/core/v1/db"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -29,7 +30,7 @@ type K8sNamespace struct {
 type Namespace struct {
 	bongo.DocumentBase `bson:",inline"`
 	Obj                K8sNamespace `bson:"obj" json:"obj"`
-	KubeClusterId      string       `json:"kubeClusterId" bson:"kubeClusterId"`
+	AgentName          string       `bson:"agent_name" json:"agent_name"`
 }
 
 func (obj Namespace) deleteAll() error {
@@ -38,7 +39,7 @@ func (obj Namespace) deleteAll() error {
 	_, err := coll.DeleteMany(db.GetDmManager().Ctx, query)
 
 	if err != nil {
-		log.Println("Failed to delete namespace [ERROR]", err)
+		log.Println("Failed to Delete namespace [ERROR]", err)
 	}
 	return err
 }
@@ -47,14 +48,18 @@ func NewNamespace() KubeObject {
 	return &Namespace{}
 }
 
-func (obj Namespace) save() error {
-	if obj.findByNamespaceAndClusterId().Name == "" {
-		//obj.Obj.Kind="Namespace"
-		//obj.Obj.APIVersion="v1"
+func (obj Namespace) Save(extra map[string]string) error {
+	obj.AgentName = extra["agent_name"]
+	if obj.findByNamespaceAndAgentName().Name == "" {
 		coll := db.GetDmManager().Db.Collection(NamespaceCollection)
 		_, err := coll.InsertOne(db.GetDmManager().Ctx, obj)
 		if err != nil {
 			log.Println("[ERROR] Insert document:", err.Error())
+			return err
+		}
+	} else {
+		err := obj.Update(obj.findById())
+		if err != nil {
 			return err
 		}
 	}
@@ -78,11 +83,11 @@ func (object Namespace) findByNamespace() K8sNamespace {
 	return temp.Obj
 }
 
-func (object Namespace) findByNamespaceAndClusterId() K8sNamespace {
+func (object Namespace) findByNamespaceAndAgentName() K8sNamespace {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.name": object.Obj.Name},
-			{"kubeClusterId": object.KubeClusterId},
+			{"agent_name": object.AgentName},
 		},
 	}
 	temp := new(Namespace)
@@ -99,7 +104,7 @@ func (obj Namespace) findById() K8sNamespace {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	temp := new(Namespace)
@@ -113,10 +118,10 @@ func (obj Namespace) findById() K8sNamespace {
 	return temp.Obj
 }
 
-func (obj Namespace) findBykubeClusterId() []K8sNamespace {
+func (obj Namespace) findBykubeAgentName() []K8sNamespace {
 	query := bson.M{
 		"$and": []bson.M{
-			{"kubeClusterId": obj.KubeClusterId},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	namespaces := []Namespace{}
@@ -159,11 +164,11 @@ func (obj Namespace) findAll() []K8sNamespace {
 	return k8sObjects
 }
 
-func (obj Namespace) delete() error {
+func (obj Namespace) Delete() error {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	coll := db.GetDmManager().Db.Collection(NamespaceCollection)
@@ -175,13 +180,17 @@ func (obj Namespace) delete() error {
 	return err
 }
 
-func (obj Namespace) update() error {
-	//obj.Obj.Kind="Namespace"
-	//obj.Obj.APIVersion="v1"
+func (obj Namespace) Update(oldObj interface{}) error {
+	var oldObject Namespace
+	errorOfUnmarshal := json.Unmarshal([]byte(oldObj.(string)), &oldObject)
+	if errorOfUnmarshal != nil {
+		return errorOfUnmarshal
+	}
+
 	filter := bson.M{
 		"$and": []bson.M{
-			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"obj.metadata.uid": oldObject.Obj.UID},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	update := bson.M{

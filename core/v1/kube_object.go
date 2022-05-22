@@ -5,12 +5,12 @@ import (
 )
 
 type KubeObject interface {
-	save() error
-	delete() error
-	update() error
+	Save(extra map[string]string) error
+	Delete() error
+	Update(oldObj interface{}) error
 }
 
-func GetObject(object enums.OBJECT) KubeObject {
+func GetObject(object enums.RESOURCE_TYPE) KubeObject {
 	if object == enums.CLUSTER_ROLE {
 		return &ClusterRole{
 			Obj: K8sClusterRole{
@@ -37,7 +37,7 @@ func GetObject(object enums.OBJECT) KubeObject {
 				},
 			},
 		}
-	} else if object == enums.DAEMON_SET {
+	} else if object == enums.DAEMONSET {
 		return &DaemonSet{
 			Obj: K8sDaemonSet{
 				TypeMeta: TypeMeta{
@@ -109,7 +109,7 @@ func GetObject(object enums.OBJECT) KubeObject {
 				},
 			},
 		}
-	} else if object == enums.REPLICA_SET {
+	} else if object == enums.REPLICASET {
 		return &ReplicaSet{
 			Obj: K8sReplicaSet{
 				TypeMeta: TypeMeta{
@@ -163,7 +163,7 @@ func GetObject(object enums.OBJECT) KubeObject {
 				},
 			},
 		}
-	} else if object == enums.STATEFUL_SET {
+	} else if object == enums.STATEFULSET {
 		return &StatefulSet{
 			Obj: K8sStatefulSet{
 				TypeMeta: TypeMeta{

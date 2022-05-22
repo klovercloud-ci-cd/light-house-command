@@ -2,6 +2,7 @@ package v1
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/go-bongo/bongo"
 	"github.com/klovercloud/lighthouse-command/core/v1/db"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -23,7 +24,7 @@ type K8sConfigMap struct {
 type ConfigMap struct {
 	bongo.DocumentBase `bson:",inline"`
 	Obj                K8sConfigMap `bson:"obj" json:"obj"`
-	KubeClusterId      string       `json:"kubeClusterId" bson:"kubeClusterId"`
+	AgentName          string       `bson:"agent_name" json:"agent_name"`
 }
 
 func (obj ConfigMap) deleteAll() error {
@@ -32,7 +33,7 @@ func (obj ConfigMap) deleteAll() error {
 	_, err := coll.DeleteMany(db.GetDmManager().Ctx, query)
 
 	if err != nil {
-		log.Println("Failed to delete cm [ERROR]", err)
+		log.Println("Failed to Delete cm [ERROR]", err)
 	}
 	return err
 }
@@ -41,12 +42,18 @@ func NewConfigMap() KubeObject {
 	return &ConfigMap{}
 }
 
-func (obj ConfigMap) save() error {
+func (obj ConfigMap) Save(extra map[string]string) error {
+	obj.AgentName = extra["agent_name"]
 	if obj.findByNameAndNamespace().Name == "" {
 		coll := db.GetDmManager().Db.Collection(ConfigmapCollection)
 		_, err := coll.InsertOne(db.GetDmManager().Ctx, obj)
 		if err != nil {
 			log.Println("[ERROR] Insert document:", err.Error())
+			return err
+		}
+	} else {
+		err := obj.Update(obj.findById())
+		if err != nil {
 			return err
 		}
 	}
@@ -57,7 +64,7 @@ func (obj ConfigMap) findById() K8sConfigMap {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	temp := new(ConfigMap)
@@ -76,7 +83,7 @@ func (object ConfigMap) findByNameAndNamespace() K8sConfigMap {
 		"$and": []bson.M{
 			{"obj.metadata.name": object.Obj.Name},
 			{"obj.metadata.namespace": object.Obj.Namespace},
-			{"kubeClusterId": object.KubeClusterId},
+			{"agent_name": object.AgentName},
 		},
 	}
 	temp := new(ConfigMap)
@@ -90,11 +97,11 @@ func (object ConfigMap) findByNameAndNamespace() K8sConfigMap {
 	return temp.Obj
 }
 
-func (obj ConfigMap) delete() error {
+func (obj ConfigMap) Delete() error {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	coll := db.GetDmManager().Db.Collection(ConfigmapCollection)
@@ -105,12 +112,16 @@ func (obj ConfigMap) delete() error {
 	return err
 }
 
-func (obj ConfigMap) update() error {
-
+func (obj ConfigMap) Update(oldObj interface{}) error {
+	var oldObject ConfigMap
+	errorOfUnmarshal := json.Unmarshal([]byte(oldObj.(string)), &oldObject)
+	if errorOfUnmarshal != nil {
+		return errorOfUnmarshal
+	}
 	filter := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	update := bson.M{
@@ -192,11 +203,11 @@ func (object ConfigMap) findByNamespace() []K8sConfigMap {
 	return k8sObjects
 }
 
-func (object ConfigMap) findByKubeClusterIdAndNamespace() []K8sConfigMap {
+func (object ConfigMap) findByKubeAgentNameAndNamespace() []K8sConfigMap {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.namespace": object.Obj.Namespace},
-			{"kubeClusterId": object.KubeClusterId},
+			{"agent_name": object.AgentName},
 		},
 	}
 	objects := []ConfigMap{}
@@ -218,10 +229,10 @@ func (object ConfigMap) findByKubeClusterIdAndNamespace() []K8sConfigMap {
 	return k8sObjects
 }
 
-func (object ConfigMap) findBykubeClusterId() []K8sConfigMap {
+func (object ConfigMap) findBykubeAgentName() []K8sConfigMap {
 	query := bson.M{
 		"$and": []bson.M{
-			{"kubeClusterId": object.KubeClusterId},
+			{"agent_name": object.AgentName},
 		},
 	}
 	objects := []ConfigMap{}
@@ -248,7 +259,7 @@ func (object ConfigMap) findByName() K8sConfigMap {
 		"$and": []bson.M{
 			{"obj.metadata.name": object.Obj.Name},
 			{"obj.metadata.namespace": object.Obj.Namespace},
-			{"kubeClusterId": object.KubeClusterId},
+			{"agent_name": object.AgentName},
 		},
 	}
 	temp := new(ConfigMap)

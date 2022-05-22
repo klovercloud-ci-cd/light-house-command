@@ -2,6 +2,7 @@ package v1
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/go-bongo/bongo"
 	"github.com/klovercloud/lighthouse-command/core/v1/db"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -24,7 +25,7 @@ type K8sServiceAccount struct {
 type ServiceAccount struct {
 	bongo.DocumentBase `bson:",inline"`
 	Obj                K8sServiceAccount `bson:"obj" json:"obj"`
-	KubeClusterId      string            `json:"kubeClusterId" bson:"kubeClusterId"`
+	AgentName          string            `bson:"agent_name" json:"agent_name"`
 }
 
 func (obj ServiceAccount) deleteAll() error {
@@ -33,7 +34,7 @@ func (obj ServiceAccount) deleteAll() error {
 	_, err := coll.DeleteMany(db.GetDmManager().Ctx, query)
 
 	if err != nil {
-		log.Println("Failed to delete sa [ERROR]", err)
+		log.Println("Failed to Delete sa [ERROR]", err)
 	}
 	return err
 }
@@ -42,12 +43,18 @@ func NewServiceAccount() KubeObject {
 	return &ServiceAccount{}
 }
 
-func (obj ServiceAccount) save() error {
+func (obj ServiceAccount) Save(extra map[string]string) error {
+	obj.AgentName = extra["agent_name"]
 	if obj.findByNameAndNamespace().Name == "" {
 		coll := db.GetDmManager().Db.Collection(ServiceAccountCollection)
 		_, err := coll.InsertOne(db.GetDmManager().Ctx, obj)
 		if err != nil {
 			log.Println("[ERROR] Insert document:", err.Error())
+			return err
+		}
+	} else {
+		err := obj.Update(obj.findById())
+		if err != nil {
 			return err
 		}
 	}
@@ -58,7 +65,7 @@ func (obj ServiceAccount) findById() K8sServiceAccount {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	temp := new(ServiceAccount)
@@ -77,7 +84,7 @@ func (obj ServiceAccount) findByNameAndNamespace() K8sServiceAccount {
 		"$and": []bson.M{
 			{"obj.metadata.name": obj.Obj.Name},
 			{"obj.metadata.namespace": obj.Obj.Namespace},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	temp := new(ServiceAccount)
@@ -91,11 +98,11 @@ func (obj ServiceAccount) findByNameAndNamespace() K8sServiceAccount {
 	return temp.Obj
 }
 
-func (obj ServiceAccount) delete() error {
+func (obj ServiceAccount) Delete() error {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	coll := db.GetDmManager().Db.Collection(ServiceAccountCollection)
@@ -106,11 +113,16 @@ func (obj ServiceAccount) delete() error {
 	return err
 }
 
-func (obj ServiceAccount) update() error {
+func (obj ServiceAccount) Update(oldObj interface{}) error {
+	var oldObject ServiceAccount
+	errorOfUnmarshal := json.Unmarshal([]byte(oldObj.(string)), &oldObject)
+	if errorOfUnmarshal != nil {
+		return errorOfUnmarshal
+	}
 	filter := bson.M{
 		"$and": []bson.M{
-			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"obj.metadata.uid": oldObject.Obj.UID},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	update := bson.M{
@@ -191,11 +203,11 @@ func (object ServiceAccount) findByNamespace() []K8sServiceAccount {
 	return k8sObjects
 }
 
-func (object ServiceAccount) findBykubeClusterIdAndNamespace() []K8sServiceAccount {
+func (object ServiceAccount) findBykubeAgentNameAndNamespace() []K8sServiceAccount {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.namespace": object.Obj.Namespace},
-			{"kubeClusterId": object.KubeClusterId},
+			{"agent_name": object.AgentName},
 		},
 	}
 	objects := []ServiceAccount{}
@@ -217,10 +229,10 @@ func (object ServiceAccount) findBykubeClusterIdAndNamespace() []K8sServiceAccou
 	return k8sObjects
 }
 
-func (object ServiceAccount) findBykubeClusterId() []K8sServiceAccount {
+func (object ServiceAccount) findBykubeAgentName() []K8sServiceAccount {
 	query := bson.M{
 		"$and": []bson.M{
-			{"kubeClusterId": object.KubeClusterId},
+			{"agent_name": object.AgentName},
 		},
 	}
 	objects := []ServiceAccount{}
@@ -247,7 +259,7 @@ func (object ServiceAccount) findByName() K8sServiceAccount {
 		"$and": []bson.M{
 			{"obj.metadata.name": object.Obj.Name},
 			{"obj.metadata.namespace": object.Obj.Namespace},
-			{"kubeClusterId": object.KubeClusterId},
+			{"agent_name": object.AgentName},
 		},
 	}
 	temp := new(ServiceAccount)

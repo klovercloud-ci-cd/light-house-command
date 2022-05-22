@@ -2,6 +2,7 @@ package v1
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/go-bongo/bongo"
 	"github.com/klovercloud/lighthouse-command/core/v1/db"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -22,7 +23,7 @@ type K8sPod struct {
 type Pod struct {
 	bongo.DocumentBase `bson:",inline"`
 	Obj                K8sPod `bson:"obj" json:"obj"`
-	KubeClusterId      string `json:"kubeClusterId" bson:"kubeClusterId"`
+	AgentName          string `bson:"agent_name" json:"agent_name"`
 }
 
 func (obj Pod) deleteAll() error {
@@ -31,7 +32,7 @@ func (obj Pod) deleteAll() error {
 	_, err := coll.DeleteMany(db.GetDmManager().Ctx, query)
 
 	if err != nil {
-		log.Println("Failed to delete pod [ERROR]", err)
+		log.Println("Failed to Delete pod [ERROR]", err)
 	}
 	return err
 }
@@ -40,11 +41,9 @@ func NewPod() KubeObject {
 	return &Pod{}
 }
 
-func (obj Pod) save() error {
-	log.Println("saving pod status:", obj.Obj.Status.Phase)
+func (obj Pod) Save(extra map[string]string) error {
+	obj.AgentName = extra["agent_name"]
 	if obj.findByNameAndNamespace().Name == "" {
-		log.Println("saving pod:", obj.Obj.Name+" not exists!")
-		//log.Println("CPU usages:",obj.Obj.Spec.Containers[0].Resources.Requests["cpu"])
 		coll := db.GetDmManager().Db.Collection(PodCollection)
 		_, err := coll.InsertOne(db.GetDmManager().Ctx, obj)
 		if err != nil {
@@ -52,21 +51,11 @@ func (obj Pod) save() error {
 			return err
 		}
 	} else {
-		log.Println("saving pod:", obj.Obj.Name+" exists!")
-		err := obj.delete()
+		err := obj.Update(obj.findById())
 		if err != nil {
-			return err
-		}
-		log.Println("again saving pod status:", obj.Obj.Status.Phase)
-		coll := db.GetDmManager().Db.Collection(PodCollection)
-		_, err = coll.InsertOne(db.GetDmManager().Ctx, obj)
-		if err != nil {
-			log.Println("[ERROR] Insert document:", err.Error())
 			return err
 		}
 	}
-
-	//obj.calculateResource().add()
 	return nil
 }
 
@@ -74,7 +63,7 @@ func (obj Pod) findById() K8sPod {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	temp := new(Pod)
@@ -94,7 +83,7 @@ func (obj Pod) findByNameAndNamespace() K8sPod {
 			{"obj.metadata.name": obj.Obj.Name},
 			{"obj.metadata.namespace": obj.Obj.Namespace},
 			{"obj.kind": "Pod"},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	temp := new(Pod)
@@ -133,11 +122,11 @@ func (obj Pod) findByLabel() []K8sPod {
 	return k8sObjects
 }
 
-func (obj Pod) delete() error {
+func (obj Pod) Delete() error {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	log.Println("deleting pod:", obj.Obj.Name+"!")
@@ -147,17 +136,20 @@ func (obj Pod) delete() error {
 	if err != nil {
 		log.Println("[ERROR]", err)
 	}
-	//	obj.calculateResource().remove()
 	return err
 }
 
-func (obj Pod) update() error {
-
+func (obj Pod) Update(oldObj interface{}) error {
+	var oldObject Pod
+	errorOfUnmarshal := json.Unmarshal([]byte(oldObj.(string)), &oldObject)
+	if errorOfUnmarshal != nil {
+		return errorOfUnmarshal
+	}
 	filter := bson.M{
 		"$and": []bson.M{
-			{"obj.metadata.name": obj.Obj.Name},
-			{"obj.metadata.namespace": obj.Obj.Namespace},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"obj.metadata.name": oldObject.Obj.Name},
+			{"obj.metadata.namespace": oldObject.Obj.Namespace},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	update := bson.M{
@@ -239,11 +231,11 @@ func (object Pod) findByNamespace() []K8sPod {
 	return k8sObjects
 }
 
-func (object Pod) findBykubeClusterIdAndNamespace() []K8sPod {
+func (object Pod) findBykubeAgentNameAndNamespace() []K8sPod {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.namespace": object.Obj.Namespace},
-			{"kubeClusterId": object.KubeClusterId},
+			{"agent_name": object.AgentName},
 		},
 	}
 	objects := []Pod{}
@@ -265,10 +257,10 @@ func (object Pod) findBykubeClusterIdAndNamespace() []K8sPod {
 	return k8sObjects
 }
 
-func (object Pod) findBykubeClusterId() []K8sPod {
+func (object Pod) findBykubeAgentName() []K8sPod {
 	query := bson.M{
 		"$and": []bson.M{
-			{"kubeClusterId": object.KubeClusterId},
+			{"agent_name": object.AgentName},
 		},
 	}
 	objects := []Pod{}
@@ -295,7 +287,7 @@ func (object Pod) findByName() K8sPod {
 		"$and": []bson.M{
 			{"obj.metadata.name": object.Obj.Name},
 			{"obj.metadata.namespace": object.Obj.Namespace},
-			{"kubeClusterId": object.KubeClusterId},
+			{"agent_name": object.AgentName},
 		},
 	}
 	temp := new(Pod)

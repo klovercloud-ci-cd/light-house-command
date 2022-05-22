@@ -2,6 +2,7 @@ package v1
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/go-bongo/bongo"
 	"github.com/klovercloud/lighthouse-command/core/v1/db"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -23,7 +24,7 @@ type K8sRoleBinding struct {
 type RoleBinding struct {
 	bongo.DocumentBase `bson:",inline"`
 	Obj                K8sRoleBinding `bson:"obj" json:"obj"`
-	KubeClusterId      string         `json:"kubeClusterId" bson:"kubeClusterId"`
+	AgentName          string         `bson:"agent_name" json:"agent_name"`
 }
 
 func (obj RoleBinding) deleteAll() error {
@@ -32,7 +33,7 @@ func (obj RoleBinding) deleteAll() error {
 	_, err := coll.DeleteMany(db.GetDmManager().Ctx, query)
 
 	if err != nil {
-		log.Println("Failed to delete rb [ERROR]", err)
+		log.Println("Failed to Delete rb [ERROR]", err)
 	}
 	return err
 }
@@ -41,12 +42,18 @@ func NewRoleBinding() KubeObject {
 	return &RoleBinding{}
 }
 
-func (obj RoleBinding) save() error {
+func (obj RoleBinding) Save(extra map[string]string) error {
+	obj.AgentName = extra["agent_name"]
 	if obj.findByNameAndNamespace().Name == "" {
 		coll := db.GetDmManager().Db.Collection(RoleBindingCollection)
 		_, err := coll.InsertOne(db.GetDmManager().Ctx, obj)
 		if err != nil {
 			log.Println("[ERROR] Insert document:", err.Error())
+			return err
+		}
+	} else {
+		err := obj.Update(obj.findById())
+		if err != nil {
 			return err
 		}
 	}
@@ -57,7 +64,7 @@ func (obj RoleBinding) findById() K8sRoleBinding {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	temp := new(RoleBinding)
@@ -75,7 +82,7 @@ func (obj RoleBinding) findByNameAndNamespace() K8sRoleBinding {
 		"$and": []bson.M{
 			{"obj.metadata.name": obj.Obj.Name},
 			{"obj.metadata.namespace": obj.Obj.Namespace},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	temp := new(RoleBinding)
@@ -89,11 +96,11 @@ func (obj RoleBinding) findByNameAndNamespace() K8sRoleBinding {
 	return temp.Obj
 }
 
-func (obj RoleBinding) delete() error {
+func (obj RoleBinding) Delete() error {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	coll := db.GetDmManager().Db.Collection(RoleBindingCollection)
@@ -104,12 +111,17 @@ func (obj RoleBinding) delete() error {
 	return err
 }
 
-func (obj RoleBinding) update() error {
+func (obj RoleBinding) Update(oldObj interface{}) error {
+	var oldObject RoleBinding
+	errorOfUnmarshal := json.Unmarshal([]byte(oldObj.(string)), &oldObject)
+	if errorOfUnmarshal != nil {
+		return errorOfUnmarshal
+	}
 
 	filter := bson.M{
 		"$and": []bson.M{
-			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"obj.metadata.uid": oldObject.Obj.UID},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	update := bson.M{
@@ -191,11 +203,11 @@ func (object RoleBinding) findByNamespace() []K8sRoleBinding {
 	return k8sObjects
 }
 
-func (object RoleBinding) findBykubeClusterIdAndNamespace() []K8sRoleBinding {
+func (object RoleBinding) findBykubeAgentNameAndNamespace() []K8sRoleBinding {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.namespace": object.Obj.Namespace},
-			{"kubeClusterId": object.KubeClusterId},
+			{"agent_name": object.AgentName},
 		},
 	}
 	objects := []RoleBinding{}
@@ -217,10 +229,10 @@ func (object RoleBinding) findBykubeClusterIdAndNamespace() []K8sRoleBinding {
 	return k8sObjects
 }
 
-func (object RoleBinding) findBykubeClusterId() []K8sRoleBinding {
+func (object RoleBinding) findBykubeAgentName() []K8sRoleBinding {
 	query := bson.M{
 		"$and": []bson.M{
-			{"kubeClusterId": object.KubeClusterId},
+			{"agent_name": object.AgentName},
 		},
 	}
 	objects := []RoleBinding{}
@@ -247,7 +259,7 @@ func (object RoleBinding) findByName() K8sRoleBinding {
 		"$and": []bson.M{
 			{"obj.metadata.name": object.Obj.Name},
 			{"obj.metadata.namespace": object.Obj.Namespace},
-			{"kubeClusterId": object.KubeClusterId},
+			{"agent_name": object.AgentName},
 		},
 	}
 	temp := new(RoleBinding)

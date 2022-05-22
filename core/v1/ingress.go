@@ -2,6 +2,7 @@ package v1
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/go-bongo/bongo"
 	"github.com/klovercloud/lighthouse-command/core/v1/db"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -23,7 +24,7 @@ type K8sIngress struct {
 type Ingress struct {
 	bongo.DocumentBase `bson:",inline"`
 	Obj                K8sIngress `bson:"obj" json:"obj"`
-	KubeClusterId      string     `json:"kubeClusterId" bson:"kubeClusterId"`
+	AgentName          string     `bson:"agent_name" json:"agent_name"`
 }
 
 func (obj Ingress) deleteAll() error {
@@ -32,7 +33,7 @@ func (obj Ingress) deleteAll() error {
 	_, err := coll.DeleteMany(db.GetDmManager().Ctx, query)
 
 	if err != nil {
-		log.Println("Failed to delete ingress [ERROR]", err)
+		log.Println("Failed to Delete ingress [ERROR]", err)
 	}
 	return err
 }
@@ -41,7 +42,8 @@ func NewIngress() KubeObject {
 	return &Ingress{}
 }
 
-func (obj Ingress) save() error {
+func (obj Ingress) Save(extra map[string]string) error {
+	obj.AgentName = extra["agent_name"]
 	if obj.findByNameAndNamespace().Name == "" {
 		coll := db.GetDmManager().Db.Collection(IngressCollection)
 		_, err := coll.InsertOne(db.GetDmManager().Ctx, obj)
@@ -50,7 +52,10 @@ func (obj Ingress) save() error {
 			return err
 		}
 	} else {
-		obj.update()
+		err := obj.Update(obj.findById())
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -59,7 +64,7 @@ func (obj Ingress) findById() K8sIngress {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	temp := new(Ingress)
@@ -77,7 +82,7 @@ func (obj Ingress) findByNameAndNamespace() K8sIngress {
 		"$and": []bson.M{
 			{"obj.metadata.name": obj.Obj.Name},
 			{"obj.metadata.namespace": obj.Obj.Namespace},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	temp := new(Ingress)
@@ -91,11 +96,11 @@ func (obj Ingress) findByNameAndNamespace() K8sIngress {
 	return temp.Obj
 }
 
-func (obj Ingress) delete() error {
+func (obj Ingress) Delete() error {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	coll := db.GetDmManager().Db.Collection(IngressCollection)
@@ -106,13 +111,18 @@ func (obj Ingress) delete() error {
 	return err
 }
 
-func (obj Ingress) update() error {
+func (obj Ingress) Update(oldObj interface{}) error {
+	var oldObject Ingress
+	errorOfUnmarshal := json.Unmarshal([]byte(oldObj.(string)), &oldObject)
+	if errorOfUnmarshal != nil {
+		return errorOfUnmarshal
+	}
 
 	filter := bson.M{
 		"$and": []bson.M{
-			{"obj.metadata.name": obj.Obj.Name},
-			{"obj.metadata.namespace": obj.Obj.Namespace},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"obj.metadata.name": oldObject.Obj.Name},
+			{"obj.metadata.namespace": oldObject.Obj.Namespace},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	update := bson.M{
@@ -194,11 +204,11 @@ func (object Ingress) findByNamespace() []K8sIngress {
 	return k8sObjects
 }
 
-func (object Ingress) findBykubeClusterIdAndNamespace() []K8sIngress {
+func (object Ingress) findBykubeAgentNameAndNamespace() []K8sIngress {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.namespace": object.Obj.Namespace},
-			{"kubeClusterId": object.KubeClusterId},
+			{"agent_name": object.AgentName},
 		},
 	}
 	objects := []Ingress{}
@@ -220,10 +230,10 @@ func (object Ingress) findBykubeClusterIdAndNamespace() []K8sIngress {
 	return k8sObjects
 }
 
-func (object Ingress) findBykubeClusterId() []K8sIngress {
+func (object Ingress) findBykubeAgentName() []K8sIngress {
 	query := bson.M{
 		"$and": []bson.M{
-			{"kubeClusterId": object.KubeClusterId},
+			{"agent_name": object.AgentName},
 		},
 	}
 	objects := []Ingress{}
@@ -250,7 +260,7 @@ func (object Ingress) findByName() K8sIngress {
 		"$and": []bson.M{
 			{"obj.metadata.name": object.Obj.Name},
 			{"obj.metadata.namespace": object.Obj.Namespace},
-			{"kubeClusterId": object.KubeClusterId},
+			{"agent_name": object.AgentName},
 		},
 	}
 	temp := new(Ingress)

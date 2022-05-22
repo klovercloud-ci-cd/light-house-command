@@ -2,6 +2,7 @@ package v1
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/go-bongo/bongo"
 	"github.com/klovercloud/lighthouse-command/core/v1/db"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -23,7 +24,7 @@ type K8sPersistentVolume struct {
 type PersistentVolume struct {
 	bongo.DocumentBase `bson:",inline"`
 	Obj                K8sPersistentVolume `bson:"obj" json:"obj"`
-	KubeClusterId      string              `json:"kubeClusterId" bson:"kubeClusterId"`
+	AgentName          string              `bson:"agent_name" json:"agent_name"`
 }
 
 func (obj PersistentVolume) deleteAll() error {
@@ -32,7 +33,7 @@ func (obj PersistentVolume) deleteAll() error {
 	_, err := coll.DeleteMany(db.GetDmManager().Ctx, query)
 
 	if err != nil {
-		log.Println("Failed to delete pv [ERROR]", err)
+		log.Println("Failed to Delete pv [ERROR]", err)
 	}
 	return err
 }
@@ -41,12 +42,18 @@ func NewPersistentVolume() KubeObject {
 	return &PersistentVolume{}
 }
 
-func (obj PersistentVolume) save() error {
-	if obj.findByNameAndClusterId().Name == "" {
+func (obj PersistentVolume) Save(extra map[string]string) error {
+	obj.AgentName = extra["agent_name"]
+	if obj.findByNameAndAgentName().Name == "" {
 		coll := db.GetDmManager().Db.Collection(PVCollection)
 		_, err := coll.InsertOne(db.GetDmManager().Ctx, obj)
 		if err != nil {
 			log.Println("[ERROR] Insert document:", err.Error())
+			return err
+		}
+	} else {
+		err := obj.Update(obj.findById())
+		if err != nil {
 			return err
 		}
 	}
@@ -57,7 +64,7 @@ func (obj PersistentVolume) findById() K8sPersistentVolume {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	temp := new(PersistentVolume)
@@ -71,11 +78,11 @@ func (obj PersistentVolume) findById() K8sPersistentVolume {
 	return temp.Obj
 }
 
-func (obj PersistentVolume) findByNameAndClusterId() K8sPersistentVolume {
+func (obj PersistentVolume) findByNameAndAgentName() K8sPersistentVolume {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.name": obj.Obj.Name},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	temp := new(PersistentVolume)
@@ -89,11 +96,11 @@ func (obj PersistentVolume) findByNameAndClusterId() K8sPersistentVolume {
 	return temp.Obj
 }
 
-func (obj PersistentVolume) delete() error {
+func (obj PersistentVolume) Delete() error {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	coll := db.GetDmManager().Db.Collection(PVCollection)
@@ -104,12 +111,17 @@ func (obj PersistentVolume) delete() error {
 	return err
 }
 
-func (obj PersistentVolume) update() error {
+func (obj PersistentVolume) Update(oldObj interface{}) error {
+	var oldObject PersistentVolume
+	errorOfUnmarshal := json.Unmarshal([]byte(oldObj.(string)), &oldObject)
+	if errorOfUnmarshal != nil {
+		return errorOfUnmarshal
+	}
 
 	filter := bson.M{
 		"$and": []bson.M{
-			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"obj.metadata.uid": oldObject.Obj.UID},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	update := bson.M{
@@ -166,10 +178,10 @@ func (object PersistentVolume) findAll() []K8sPersistentVolume {
 	return k8sObjects
 }
 
-func (object PersistentVolume) findBykubeClusterId() []K8sPersistentVolume {
+func (object PersistentVolume) findBykubeAgentName() []K8sPersistentVolume {
 	query := bson.M{
 		"$and": []bson.M{
-			{"kubeClusterId": object.KubeClusterId},
+			{"agent_name": object.AgentName},
 		},
 	}
 	objects := []PersistentVolume{}
@@ -195,7 +207,7 @@ func (obj PersistentVolume) findByName() K8sPersistentVolume {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.name": obj.Obj.Name},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	temp := new(PersistentVolume)

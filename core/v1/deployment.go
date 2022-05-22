@@ -2,6 +2,7 @@ package v1
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/go-bongo/bongo"
 	"github.com/klovercloud/lighthouse-command/core/v1/db"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -23,7 +24,7 @@ type K8sDeployment struct {
 type Deployment struct {
 	bongo.DocumentBase `bson:",inline"`
 	Obj                K8sDeployment `bson:"obj" json:"obj"`
-	KubeClusterId      string        `json:"kubeClusterId" bson:"kubeClusterId"`
+	AgentName          string        `bson:"agent_name" json:"agent_name"`
 }
 
 func (obj Deployment) deleteAll() error {
@@ -32,7 +33,7 @@ func (obj Deployment) deleteAll() error {
 	_, err := coll.DeleteMany(db.GetDmManager().Ctx, query)
 
 	if err != nil {
-		log.Println("Failed to delete deployment [ERROR]", err)
+		log.Println("Failed to Delete deployment [ERROR]", err)
 	}
 	return err
 }
@@ -40,7 +41,8 @@ func (obj Deployment) deleteAll() error {
 func NewDeployment() KubeObject {
 	return &Deployment{}
 }
-func (obj Deployment) save() error {
+func (obj Deployment) Save(extra map[string]string) error {
+	obj.AgentName = extra["agent_name"]
 	if obj.findByNameAndNamespace().Name == "" {
 		coll := db.GetDmManager().Db.Collection(DeploymentCollection)
 		_, err := coll.InsertOne(db.GetDmManager().Ctx, obj)
@@ -49,7 +51,7 @@ func (obj Deployment) save() error {
 			return err
 		}
 	} else {
-		err := obj.update()
+		err := obj.Update(obj.findByNameAndNamespace())
 		if err != nil {
 			return err
 		}
@@ -61,7 +63,7 @@ func (obj Deployment) findById() K8sDeployment {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	temp := new(Deployment)
@@ -80,7 +82,7 @@ func (obj Deployment) findByNameAndNamespace() K8sDeployment {
 		"$and": []bson.M{
 			{"obj.metadata.name": obj.Obj.Name},
 			{"obj.metadata.namespace": obj.Obj.Namespace},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	temp := new(Deployment)
@@ -94,11 +96,11 @@ func (obj Deployment) findByNameAndNamespace() K8sDeployment {
 	return temp.Obj
 }
 
-func (obj Deployment) delete() error {
+func (obj Deployment) Delete() error {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	coll := db.GetDmManager().Db.Collection(DeploymentCollection)
@@ -110,13 +112,18 @@ func (obj Deployment) delete() error {
 	return err
 }
 
-func (obj Deployment) update() error {
+func (obj Deployment) Update(oldObj interface{}) error {
+	var oldObject Deployment
+	errorOfUnmarshal := json.Unmarshal([]byte(oldObj.(string)), &oldObject)
+	if errorOfUnmarshal != nil {
+		return errorOfUnmarshal
+	}
 
 	filter := bson.M{
 		"$and": []bson.M{
-			{"obj.metadata.name": obj.Obj.Name},
-			{"obj.metadata.namespace": obj.Obj.Namespace},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"obj.metadata.name": oldObject.Obj.Name},
+			{"obj.metadata.namespace": oldObject.Obj.Namespace},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	update := bson.M{
@@ -198,11 +205,11 @@ func (object Deployment) findByNamespace() []K8sDeployment {
 	return k8sObjects
 }
 
-func (object Deployment) findBykubeClusterIdAndNamespace() []K8sDeployment {
+func (object Deployment) findBykubeAgentNameAndNamespace() []K8sDeployment {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.namespace": object.Obj.Namespace},
-			{"kubeClusterId": object.KubeClusterId},
+			{"agent_name": object.AgentName},
 		},
 	}
 	objects := []Deployment{}
@@ -224,10 +231,10 @@ func (object Deployment) findBykubeClusterIdAndNamespace() []K8sDeployment {
 	return k8sObjects
 }
 
-func (object Deployment) findBykubeClusterId() []K8sDeployment {
+func (object Deployment) findBykubeAgentName() []K8sDeployment {
 	query := bson.M{
 		"$and": []bson.M{
-			{"kubeClusterId": object.KubeClusterId},
+			{"agent_name": object.AgentName},
 		},
 	}
 	objects := []Deployment{}
@@ -254,7 +261,7 @@ func (object Deployment) findByName() K8sDeployment {
 		"$and": []bson.M{
 			{"obj.metadata.name": object.Obj.Name},
 			{"obj.metadata.namespace": object.Obj.Namespace},
-			{"kubeClusterId": object.KubeClusterId},
+			{"agent_name": object.AgentName},
 		},
 	}
 	temp := new(Deployment)

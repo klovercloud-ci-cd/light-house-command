@@ -2,6 +2,7 @@ package v1
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/go-bongo/bongo"
 	"github.com/klovercloud/lighthouse-command/core/v1/db"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -22,7 +23,7 @@ type K8sClusterRole struct {
 type ClusterRole struct {
 	bongo.DocumentBase `bson:",inline"`
 	Obj                K8sClusterRole `bson:"obj" json:"obj"`
-	KubeClusterId      string         `json:"kubeClusterId" bson:"kubeClusterId"`
+	AgentName          string         `bson:"agent_name" json:"agent_name"`
 }
 
 func (obj ClusterRole) deleteAll() error {
@@ -31,7 +32,7 @@ func (obj ClusterRole) deleteAll() error {
 	_, err := coll.DeleteMany(db.GetDmManager().Ctx, query)
 
 	if err != nil {
-		log.Println("Failed to delete CR [ERROR]", err)
+		log.Println("Failed to Delete CR [ERROR]", err)
 	}
 	return err
 }
@@ -40,12 +41,18 @@ func NewClusterRole() KubeObject {
 	return &ClusterRole{}
 }
 
-func (obj ClusterRole) save() error {
+func (obj ClusterRole) Save(extra map[string]string) error {
+	obj.AgentName = extra["agent_name"]
 	if obj.findByName().Name == "" {
 		coll := db.GetDmManager().Db.Collection(ClusterRoleCollection)
 		_, err := coll.InsertOne(db.GetDmManager().Ctx, obj)
 		if err != nil {
 			log.Println("[ERROR] Insert document:", err.Error())
+			return err
+		}
+	} else {
+		err := obj.Update(obj.findByName())
+		if err != nil {
 			return err
 		}
 	}
@@ -56,7 +63,7 @@ func (obj ClusterRole) findById() K8sClusterRole {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	temp := new(ClusterRole)
@@ -74,7 +81,7 @@ func (obj ClusterRole) findByName() K8sClusterRole {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.name": obj.Obj.Name},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	temp := new(ClusterRole)
@@ -88,11 +95,11 @@ func (obj ClusterRole) findByName() K8sClusterRole {
 	return temp.Obj
 }
 
-func (obj ClusterRole) delete() error {
+func (obj ClusterRole) Delete() error {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	coll := db.GetDmManager().Db.Collection(ClusterRoleCollection)
@@ -103,10 +110,10 @@ func (obj ClusterRole) delete() error {
 	return err
 }
 
-func (obj ClusterRole) deleteAllBykubeClusterId() error {
+func (obj ClusterRole) deleteAllBykubeAgentName() error {
 	query := bson.M{
 		"$and": []bson.M{
-			{"kubeClusterId": obj.KubeClusterId},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	coll := db.GetDmManager().Db.Collection(ClusterRoleCollection)
@@ -117,12 +124,17 @@ func (obj ClusterRole) deleteAllBykubeClusterId() error {
 	return err
 }
 
-func (obj ClusterRole) update() error {
+func (obj ClusterRole) Update(oldObj interface{}) error {
+	var oldObject ClusterRole
+	errorOfUnmarshal := json.Unmarshal([]byte(oldObj.(string)), &oldObject)
+	if errorOfUnmarshal != nil {
+		return errorOfUnmarshal
+	}
 
 	filter := bson.M{
 		"$and": []bson.M{
-			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"obj.metadata.uid": oldObject.Obj.UID},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	update := bson.M{
@@ -179,10 +191,10 @@ func (object ClusterRole) findAll() []K8sClusterRole {
 	return k8sObjects
 }
 
-func (object ClusterRole) findBykubeClusterId() []K8sClusterRole {
+func (object ClusterRole) findBykubeAgentName() []K8sClusterRole {
 	query := bson.M{
 		"$and": []bson.M{
-			{"kubeClusterId": object.KubeClusterId},
+			{"agent_name": object.AgentName},
 		},
 	}
 	objects := []ClusterRole{}

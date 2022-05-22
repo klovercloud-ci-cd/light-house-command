@@ -2,6 +2,7 @@ package v1
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/go-bongo/bongo"
 	"github.com/klovercloud/lighthouse-command/core/v1/db"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -23,7 +24,7 @@ type K8sStatefulSet struct {
 type StatefulSet struct {
 	bongo.DocumentBase `bson:",inline"`
 	Obj                K8sStatefulSet `bson:"obj" json:"obj"`
-	KubeClusterId      string         `json:"kubeClusterId" bson:"kubeClusterId"`
+	AgentName          string         `bson:"agent_name" json:"agent_name"`
 }
 
 func (obj StatefulSet) deleteAll() error {
@@ -32,7 +33,7 @@ func (obj StatefulSet) deleteAll() error {
 	_, err := coll.DeleteMany(db.GetDmManager().Ctx, query)
 
 	if err != nil {
-		log.Println("Failed to delete statefulSet [ERROR]", err)
+		log.Println("Failed to Delete statefulSet [ERROR]", err)
 	}
 	return err
 }
@@ -41,12 +42,18 @@ func NewStatefulSet() KubeObject {
 	return &StatefulSet{}
 }
 
-func (obj StatefulSet) save() error {
+func (obj StatefulSet) Save(extra map[string]string) error {
+	obj.AgentName = extra["agent_name"]
 	if obj.findByNameAndNamespace().Name == "" {
 		coll := db.GetDmManager().Db.Collection(StatefulSetCollection)
 		_, err := coll.InsertOne(db.GetDmManager().Ctx, obj)
 		if err != nil {
 			log.Println("[ERROR] Insert document:", err.Error())
+			return err
+		}
+	} else {
+		err := obj.Update(obj.findById())
+		if err != nil {
 			return err
 		}
 	}
@@ -57,7 +64,7 @@ func (obj StatefulSet) findById() K8sStatefulSet {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	temp := new(StatefulSet)
@@ -76,7 +83,7 @@ func (obj StatefulSet) findByNameAndNamespace() K8sStatefulSet {
 		"$and": []bson.M{
 			{"obj.metadata.name": obj.Obj.Name},
 			{"obj.metadata.namespace": obj.Obj.Namespace},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	temp := new(StatefulSet)
@@ -90,11 +97,11 @@ func (obj StatefulSet) findByNameAndNamespace() K8sStatefulSet {
 	return temp.Obj
 }
 
-func (obj StatefulSet) delete() error {
+func (obj StatefulSet) Delete() error {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	coll := db.GetDmManager().Db.Collection(StatefulSetCollection)
@@ -105,12 +112,17 @@ func (obj StatefulSet) delete() error {
 	return err
 }
 
-func (obj StatefulSet) update() error {
+func (obj StatefulSet) Update(oldObj interface{}) error {
+	var oldObject StatefulSet
+	errorOfUnmarshal := json.Unmarshal([]byte(oldObj.(string)), &oldObject)
+	if errorOfUnmarshal != nil {
+		return errorOfUnmarshal
+	}
 
 	filter := bson.M{
 		"$and": []bson.M{
-			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"obj.metadata.uid": oldObject.Obj.UID},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	update := bson.M{
@@ -192,11 +204,11 @@ func (object StatefulSet) findByNamespace() []K8sStatefulSet {
 	return k8sObjects
 }
 
-func (object StatefulSet) findBykubeClusterIdAndNamespace() []K8sStatefulSet {
+func (object StatefulSet) findBykubeAgentNameAndNamespace() []K8sStatefulSet {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.namespace": object.Obj.Namespace},
-			{"kubeClusterId": object.KubeClusterId},
+			{"agent_name": object.AgentName},
 		},
 	}
 	objects := []StatefulSet{}
@@ -221,7 +233,7 @@ func (object StatefulSet) findBykubeClusterIdAndNamespace() []K8sStatefulSet {
 func (object StatefulSet) findBykubeClusterId() []K8sStatefulSet {
 	query := bson.M{
 		"$and": []bson.M{
-			{"kubeClusterId": object.KubeClusterId},
+			{"agent_name": object.AgentName},
 		},
 	}
 	objects := []StatefulSet{}
@@ -248,7 +260,7 @@ func (object StatefulSet) findByName() K8sStatefulSet {
 		"$and": []bson.M{
 			{"obj.metadata.name": object.Obj.Name},
 			{"obj.metadata.namespace": object.Obj.Namespace},
-			{"kubeClusterId": object.KubeClusterId},
+			{"agent_name": object.AgentName},
 		},
 	}
 	temp := new(StatefulSet)

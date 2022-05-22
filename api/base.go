@@ -1,6 +1,7 @@
 package api
 
 import (
+	v1 "github.com/klovercloud/lighthouse-command/api/v1"
 	"github.com/labstack/echo/v4"
 	"net/http"
 )
@@ -11,6 +12,7 @@ func Routes(e *echo.Echo) {
 
 	// Health Page
 	e.GET("/health", health)
+	v1.Router(e.Group("/api/v1"))
 }
 
 func index(c echo.Context) error {

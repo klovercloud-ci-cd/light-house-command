@@ -2,6 +2,7 @@ package v1
 
 import (
 	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
+	"github.com/klovercloud/lighthouse-command/enums"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"time"
@@ -10,6 +11,17 @@ import (
 type UID string
 type Time struct {
 	time.Time `protobuf:"-"`
+}
+
+type KubeEventMessage struct {
+	Body   interface{}   `json:"body"`
+	Header MessageHeader `json:"header"`
+}
+
+type MessageHeader struct {
+	Offset  int               `json:"offset"`
+	Command enums.Command     `json:"command"`
+	Extras  map[string]string `json:"extras"`
 }
 
 type OwnerReference struct {
@@ -31,7 +43,7 @@ type OwnerReference struct {
 	// the owner cannot be deleted from the key-value store until this
 	// reference is removed.
 	// Defaults to false.
-	// To set this field, a user needs "delete" permission of the owner,
+	// To set this field, a user needs "Delete" permission of the owner,
 	// otherwise 422 (Unprocessable Entity) will be returned.
 	// +optional
 	BlockOwnerDeletion *bool `json:"blockOwnerDeletion,omitempty" protobuf:"varint,7,opt,name=blockOwnerDeletion" bson:"blockOwnerDeletion"`
@@ -143,7 +155,7 @@ const (
 	// Status code 410
 	StatusReasonGone StatusReason = "Gone"
 
-	// StatusReasonInvalid means the requested create or update operation cannot be
+	// StatusReasonInvalid means the requested create or Update operation cannot be
 	// completed due to invalid data provided as part of the request. The client may
 	// need to alter the request. When set, the client may use the StatusDetails
 	// message field as a summary of the issues encountered.
@@ -194,7 +206,7 @@ const (
 	StatusReasonBadRequest StatusReason = "BadRequest"
 
 	// StatusReasonMethodNotAllowed means that the action the client attempted to perform on the
-	// resource was not supported by the code - for instance, attempting to delete a resource that
+	// resource was not supported by the code - for instance, attempting to Delete a resource that
 	// can only be created. API calls that return MethodNotAllowed can never succeed.
 	StatusReasonMethodNotAllowed StatusReason = "MethodNotAllowed"
 
@@ -500,7 +512,7 @@ type ObjectMeta struct {
 
 	// The name of the cluster which the object belongs to.
 	// This is used to distinguish resources with same name and namespace in different clusters.
-	// This field is not set anywhere right now and apiserver is going to ignore it if set in create or update request.
+	// This field is not set anywhere right now and apiserver is going to ignore it if set in create or Update request.
 	// +optional
 	ClusterName string `json:"clusterName,omitempty" protobuf:"bytes,15,opt,name=clusterName" bson:"clusterName"`
 }
@@ -597,11 +609,11 @@ type RoleRef struct {
 }
 
 type DaemonSetUpdateStrategy struct {
-	// Type of daemon set update. Can be "RollingUpdate" or "OnDelete". Default is RollingUpdate.
+	// Type of daemon set Update. Can be "RollingUpdate" or "OnDelete". Default is RollingUpdate.
 	// +optional
 	Type DaemonSetUpdateStrategyType `json:"type,omitempty" protobuf:"bytes,1,opt,name=type" bson:"type"`
 
-	// Rolling update config params. Present only if type = "RollingUpdate".
+	// Rolling Update config params. Present only if type = "RollingUpdate".
 	//---
 	// TODO: Update this to follow our convention for oneOf, whatever we decide it
 	// to be. Same as Deployment `strategy.rollingUpdate`.
@@ -615,7 +627,7 @@ type DeploymentStrategy struct {
 	// +optional
 	Type DeploymentStrategyType `json:"type,omitempty" protobuf:"bytes,1,opt,name=type,casttype=DeploymentStrategyType" bson:"type"`
 
-	// Rolling update config params. Present only if DeploymentStrategyType =
+	// Rolling Update config params. Present only if DeploymentStrategyType =
 	// RollingUpdate.
 	//---
 	// TODO: Update this to follow our convention for oneOf, whatever we decide it
@@ -627,29 +639,29 @@ type DeploymentStrategy struct {
 type DaemonSetUpdateStrategyType string
 
 const (
-	// Replace the old daemons by new ones using rolling update i.e replace them on each node one after the other.
+	// Replace the old daemons by new ones using rolling Update i.e replace them on each node one after the other.
 	RollingUpdateDaemonSetStrategyType DaemonSetUpdateStrategyType = "RollingUpdate"
 
 	// Replace the old daemons only when it's killed
 	OnDeleteDaemonSetStrategyType DaemonSetUpdateStrategyType = "OnDelete"
 )
 
-// Spec to control the desired behavior of daemon set rolling update.
+// Spec to control the desired behavior of daemon set rolling Update.
 type RollingUpdateDaemonSet struct {
 	// The maximum number of DaemonSet pods that can be unavailable during the
-	// update. Value can be an absolute number (ex: 5) or a percentage of total
-	// number of DaemonSet pods at the start of the update (ex: 10%). Absolute
+	// Update. Value can be an absolute number (ex: 5) or a percentage of total
+	// number of DaemonSet pods at the start of the Update (ex: 10%). Absolute
 	// number is calculated from percentage by rounding up.
 	// This cannot be 0.
 	// Default value is 1.
 	// Example: when this is set to 30%, at most 30% of the total number of nodes
 	// that should be running the daemon pod (i.e. status.desiredNumberScheduled)
-	// can have their pods stopped for an update at any given
-	// time. The update starts by stopping at most 30% of those DaemonSet pods
+	// can have their pods stopped for an Update at any given
+	// time. The Update starts by stopping at most 30% of those DaemonSet pods
 	// and then brings up new DaemonSet pods in their place. Once the new pods
 	// are available, it then proceeds onto other DaemonSet pods, thus ensuring
 	// that at least 70% of original number of DaemonSet pods are available at
-	// all times during the update.
+	// all times during the Update.
 	// +optional
 	MaxUnavailable *intstr.IntOrString `json:"maxUnavailable,omitempty" protobuf:"bytes,1,opt,name=maxUnavailable" bson:"maxUnavailable"`
 }
@@ -668,7 +680,7 @@ type DaemonSetSpec struct {
 	// More info: https://kubernetes.io/docs/concepts/workloads/controllers/replicationcontroller#pod-template
 	Template PodTemplateSpec `json:"template" protobuf:"bytes,2,opt,name=template" bson:"template"`
 
-	// An update strategy to replace existing DaemonSet pods with new pods.
+	// An Update strategy to replace existing DaemonSet pods with new pods.
 	// +optional
 	UpdateStrategy DaemonSetUpdateStrategy `json:"updateStrategy,omitempty" protobuf:"bytes,3,opt,name=updateStrategy" bson:"updateStrategy"`
 
@@ -2273,7 +2285,7 @@ type NodeAffinity struct {
 	// If the affinity requirements specified by this field are not met at
 	// scheduling time, the pod will not be scheduled onto the node.
 	// If the affinity requirements specified by this field cease to be met
-	// at some point during pod execution (e.g. due to an update), the system
+	// at some point during pod execution (e.g. due to an Update), the system
 	// will try to eventually evict the pod from its node.
 	// +optional
 	// RequiredDuringSchedulingRequiredDuringExecution *NodeSelector `json:"requiredDuringSchedulingRequiredDuringExecution,omitempty"`
@@ -2281,7 +2293,7 @@ type NodeAffinity struct {
 	// If the affinity requirements specified by this field are not met at
 	// scheduling time, the pod will not be scheduled onto the node.
 	// If the affinity requirements specified by this field cease to be met
-	// at some point during pod execution (e.g. due to an update), the system
+	// at some point during pod execution (e.g. due to an Update), the system
 	// may or may not try to eventually evict the pod from its node.
 	// +optional
 	RequiredDuringSchedulingIgnoredDuringExecution *NodeSelector `json:"requiredDuringSchedulingIgnoredDuringExecution,omitempty" protobuf:"bytes,1,opt,name=requiredDuringSchedulingIgnoredDuringExecution" bson:"requiredDuringSchedulingIgnoredDuringExecution"`
@@ -2324,7 +2336,7 @@ type PodAffinity struct {
 	// If the affinity requirements specified by this field are not met at
 	// scheduling time, the pod will not be scheduled onto the node.
 	// If the affinity requirements specified by this field cease to be met
-	// at some point during pod execution (e.g. due to a pod label update), the
+	// at some point during pod execution (e.g. due to a pod label Update), the
 	// system will try to eventually evict the pod from its node.
 	// When there are multiple elements, the lists of nodes corresponding to each
 	// podAffinityTerm are intersected, i.e. all terms must be satisfied.
@@ -2334,7 +2346,7 @@ type PodAffinity struct {
 	// If the affinity requirements specified by this field are not met at
 	// scheduling time, the pod will not be scheduled onto the node.
 	// If the affinity requirements specified by this field cease to be met
-	// at some point during pod execution (e.g. due to a pod label update), the
+	// at some point during pod execution (e.g. due to a pod label Update), the
 	// system may or may not try to eventually evict the pod from its node.
 	// When there are multiple elements, the lists of nodes corresponding to each
 	// podAffinityTerm are intersected, i.e. all terms must be satisfied.
@@ -2357,7 +2369,7 @@ type PodAntiAffinity struct {
 	// If the anti-affinity requirements specified by this field are not met at
 	// scheduling time, the pod will not be scheduled onto the node.
 	// If the anti-affinity requirements specified by this field cease to be met
-	// at some point during pod execution (e.g. due to a pod label update), the
+	// at some point during pod execution (e.g. due to a pod label Update), the
 	// system will try to eventually evict the pod from its node.
 	// When there are multiple elements, the lists of nodes corresponding to each
 	// podAffinityTerm are intersected, i.e. all terms must be satisfied.
@@ -2367,7 +2379,7 @@ type PodAntiAffinity struct {
 	// If the anti-affinity requirements specified by this field are not met at
 	// scheduling time, the pod will not be scheduled onto the node.
 	// If the anti-affinity requirements specified by this field cease to be met
-	// at some point during pod execution (e.g. due to a pod label update), the
+	// at some point during pod execution (e.g. due to a pod label Update), the
 	// system may or may not try to eventually evict the pod from its node.
 	// When there are multiple elements, the lists of nodes corresponding to each
 	// podAffinityTerm are intersected, i.e. all terms must be satisfied.
@@ -2525,8 +2537,8 @@ type PodSpec struct {
 	// More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#restart-policy
 	// +optional
 	RestartPolicy RestartPolicy `json:"restartPolicy,omitempty" protobuf:"bytes,3,opt,name=restartPolicy,casttype=RestartPolicy" bson:"RestartPolicy"`
-	// Optional duration in seconds the pod needs to terminate gracefully. May be decreased in delete request.
-	// Value must be non-negative integer. The value zero indicates delete immediately.
+	// Optional duration in seconds the pod needs to terminate gracefully. May be decreased in Delete request.
+	// Value must be non-negative integer. The value zero indicates Delete immediately.
 	// If this value is nil, the default grace period will be used instead.
 	// The grace period is the duration in seconds after the processes running in the pod are sent
 	// a termination signal and the time when the processes are forcibly halted with a kill signal.
@@ -2781,20 +2793,20 @@ const (
 	// Kill all existing pods before creating new ones.
 	RecreateDeploymentStrategyType DeploymentStrategyType = "Recreate"
 
-	// Replace the old ReplicaSets by new one using rolling update i.e gradually scale down the old ReplicaSets and scale up the new one.
+	// Replace the old ReplicaSets by new one using rolling Update i.e gradually scale down the old ReplicaSets and scale up the new one.
 	RollingUpdateDeploymentStrategyType DeploymentStrategyType = "RollingUpdate"
 )
 
 type RollingUpdateDeployment struct {
-	// The maximum number of pods that can be unavailable during the update.
+	// The maximum number of pods that can be unavailable during the Update.
 	// Value can be an absolute number (ex: 5) or a percentage of desired pods (ex: 10%).
 	// Absolute number is calculated from percentage by rounding down.
 	// This can not be 0 if MaxSurge is 0.
 	// Defaults to 25%.
 	// Example: when this is set to 30%, the old ReplicaSet can be scaled down to 70% of desired pods
-	// immediately when the rolling update starts. Once new pods are ready, old ReplicaSet
+	// immediately when the rolling Update starts. Once new pods are ready, old ReplicaSet
 	// can be scaled down further, followed by scaling up the new ReplicaSet, ensuring
-	// that the total number of pods available at all times during the update is at
+	// that the total number of pods available at all times during the Update is at
 	// least 70% of desired pods.
 	// +optional
 	MaxUnavailable *intstr.IntOrString `json:"maxUnavailable,omitempty" protobuf:"bytes,1,opt,name=maxUnavailable"`
@@ -2806,10 +2818,10 @@ type RollingUpdateDeployment struct {
 	// Absolute number is calculated from percentage by rounding up.
 	// Defaults to 25%.
 	// Example: when this is set to 30%, the new ReplicaSet can be scaled up immediately when
-	// the rolling update starts, such that the total number of old and new pods do not exceed
+	// the rolling Update starts, such that the total number of old and new pods do not exceed
 	// 130% of desired pods. Once old pods have been killed,
 	// new ReplicaSet can be scaled up further, ensuring that total number of pods running
-	// at any time during the update is at most 130% of desired pods.
+	// at any time during the Update is at most 130% of desired pods.
 	// +optional
 	MaxSurge *intstr.IntOrString `json:"maxSurge,omitempty" protobuf:"bytes,2,opt,name=maxSurge"`
 }
@@ -4442,7 +4454,7 @@ const (
 	// the previous pod is ready or terminated. At most one pod will be changed
 	// at any time.
 	OrderedReadyPodManagement PodManagementPolicyType = "OrderedReady"
-	// ParallelPodManagement will create and delete pods as soon as the stateful set
+	// ParallelPodManagement will create and Delete pods as soon as the stateful set
 	// replica count is changed, and will not wait for pods to be ready or complete
 	// termination.
 	ParallelPodManagement = "Parallel"
@@ -4451,7 +4463,7 @@ const (
 type StatefulSetUpdateStrategyType string
 
 const (
-	// RollingUpdateStatefulSetStrategyType indicates that update will be
+	// RollingUpdateStatefulSetStrategyType indicates that Update will be
 	// applied to all Pods in the StatefulSet with respect to the StatefulSet
 	// ordering constraints. When a scale operation is performed with this
 	// strategy, new Pods will be created from the specification version indicated
@@ -4543,13 +4555,13 @@ type StatefulSetSpec struct {
 	// pod-1, etc) and the controller will wait until each pod is ready before
 	// continuing. When scaling down, the pods are removed in the opposite order.
 	// The alternative policy is `Parallel` which will create pods in parallel
-	// to match the desired scale without waiting, and on scale down will delete
+	// to match the desired scale without waiting, and on scale down will Delete
 	// all pods at once.
 	// +optional
 	PodManagementPolicy PodManagementPolicyType `json:"podManagementPolicy,omitempty" protobuf:"bytes,6,opt,name=podManagementPolicy,casttype=PodManagementPolicyType" bson:"podManagementPolicy"`
 
 	// updateStrategy indicates the StatefulSetUpdateStrategy that will be
-	// employed to update Pods in the StatefulSet when a revision is made to
+	// employed to Update Pods in the StatefulSet when a revision is made to
 	// Template.
 	UpdateStrategy StatefulSetUpdateStrategy `json:"updateStrategy,omitempty" protobuf:"bytes,7,opt,name=updateStrategy" bson:"updateStrategy"`
 
@@ -4754,7 +4766,7 @@ type NodeCondition struct {
 	Type NodeConditionType `json:"type" protobuf:"bytes,1,opt,name=type,casttype=NodeConditionType" bson:"type"`
 	// Status of the condition, one of True, False, Unknown.
 	Status ConditionStatus `json:"status" protobuf:"bytes,2,opt,name=status,casttype=ConditionStatus" bson:"status"`
-	// Last time we got an update on a given condition.
+	// Last time we got an Update on a given condition.
 	// +optional
 	LastHeartbeatTime Time `json:"lastHeartbeatTime,omitempty" protobuf:"bytes,3,opt,name=lastHeartbeatTime" bson:"lastHeartbeatTime"`
 	// Last time the condition transit from one status to another.

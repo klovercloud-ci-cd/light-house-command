@@ -2,6 +2,7 @@ package v1
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/go-bongo/bongo"
 	"github.com/klovercloud/lighthouse-command/core/v1/db"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -22,7 +23,7 @@ type K8sReplicaSet struct {
 type ReplicaSet struct {
 	bongo.DocumentBase `bson:",inline"`
 	Obj                K8sReplicaSet `bson:"obj" json:"obj"`
-	KubeClusterId      string        `json:"kubeClusterId" bson:"kubeClusterId"`
+	AgentName          string        `bson:"agent_name" json:"agent_name"`
 }
 
 func (obj ReplicaSet) deleteAll() error {
@@ -31,7 +32,7 @@ func (obj ReplicaSet) deleteAll() error {
 	_, err := coll.DeleteMany(db.GetDmManager().Ctx, query)
 
 	if err != nil {
-		log.Println("Failed to delete replicaSet [ERROR]", err)
+		log.Println("Failed to Delete replicaSet [ERROR]", err)
 	}
 	return err
 }
@@ -40,12 +41,18 @@ func NewReplicaSet() KubeObject {
 	return &ReplicaSet{}
 }
 
-func (obj ReplicaSet) save() error {
+func (obj ReplicaSet) Save(extra map[string]string) error {
+	obj.AgentName = extra["agent_name"]
 	if obj.findByNameAndNamespace().Name == "" {
 		coll := db.GetDmManager().Db.Collection(ReplicaSetCollection)
 		_, err := coll.InsertOne(db.GetDmManager().Ctx, obj)
 		if err != nil {
 			log.Println("[ERROR] Insert document:", err.Error())
+			return err
+		}
+	} else {
+		err := obj.Update(obj.findById())
+		if err != nil {
 			return err
 		}
 	}
@@ -56,7 +63,7 @@ func (obj ReplicaSet) findById() K8sReplicaSet {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	temp := new(ReplicaSet)
@@ -75,7 +82,7 @@ func (obj ReplicaSet) findByNameAndNamespace() K8sReplicaSet {
 		"$and": []bson.M{
 			{"obj.metadata.namespace": obj.Obj.Namespace},
 			{"obj.metadata.name": obj.Obj.Name},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	temp := new(ReplicaSet)
@@ -89,11 +96,11 @@ func (obj ReplicaSet) findByNameAndNamespace() K8sReplicaSet {
 	return temp.Obj
 }
 
-func (obj ReplicaSet) delete() error {
+func (obj ReplicaSet) Delete() error {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	coll := db.GetDmManager().Db.Collection(ReplicaSetCollection)
@@ -104,12 +111,17 @@ func (obj ReplicaSet) delete() error {
 	return err
 }
 
-func (obj ReplicaSet) update() error {
+func (obj ReplicaSet) Update(oldObj interface{}) error {
+	var oldObject ReplicaSet
+	errorOfUnmarshal := json.Unmarshal([]byte(oldObj.(string)), &oldObject)
+	if errorOfUnmarshal != nil {
+		return errorOfUnmarshal
+	}
 
 	filter := bson.M{
 		"$and": []bson.M{
-			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"obj.metadata.uid": oldObject.Obj.UID},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	update := bson.M{
@@ -191,11 +203,11 @@ func (object ReplicaSet) findByNamespace() []K8sReplicaSet {
 	return k8sObjects
 }
 
-func (object ReplicaSet) findBykubeClusterIdAndNamespace() []K8sReplicaSet {
+func (object ReplicaSet) findBykubeAgentNameAndNamespace() []K8sReplicaSet {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.namespace": object.Obj.Namespace},
-			{"kubeClusterId": object.KubeClusterId},
+			{"agent_name": object.AgentName},
 		},
 	}
 	objects := []ReplicaSet{}
@@ -217,10 +229,10 @@ func (object ReplicaSet) findBykubeClusterIdAndNamespace() []K8sReplicaSet {
 	return k8sObjects
 }
 
-func (object ReplicaSet) findBykubeClusterId() []K8sReplicaSet {
+func (object ReplicaSet) findBykubeAgentName() []K8sReplicaSet {
 	query := bson.M{
 		"$and": []bson.M{
-			{"kubeClusterId": object.KubeClusterId},
+			{"agent_name": object.AgentName},
 		},
 	}
 	objects := []ReplicaSet{}
@@ -247,7 +259,7 @@ func (object ReplicaSet) findByName() K8sReplicaSet {
 		"$and": []bson.M{
 			{"obj.metadata.name": object.Obj.Name},
 			{"obj.metadata.namespace": object.Obj.Namespace},
-			{"kubeClusterId": object.KubeClusterId},
+			{"agent_name": object.AgentName},
 		},
 	}
 	temp := new(ReplicaSet)

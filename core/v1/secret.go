@@ -2,6 +2,7 @@ package v1
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/go-bongo/bongo"
 	"github.com/klovercloud/lighthouse-command/core/v1/db"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -24,7 +25,7 @@ type K8sSecret struct {
 type Secret struct {
 	bongo.DocumentBase `bson:",inline"`
 	Obj                K8sSecret `bson:"obj" json:"obj"`
-	KubeClusterId      string    `json:"kubeClusterId" bson:"kubeClusterId"`
+	AgentName          string    `bson:"agent_name" json:"agent_name"`
 }
 
 func (obj Secret) deleteAll() error {
@@ -33,7 +34,7 @@ func (obj Secret) deleteAll() error {
 	_, err := coll.DeleteMany(db.GetDmManager().Ctx, query)
 
 	if err != nil {
-		log.Println("Failed to delete secret [ERROR]", err)
+		log.Println("Failed to Delete secret [ERROR]", err)
 	}
 	return err
 }
@@ -42,12 +43,18 @@ func NewSecret() KubeObject {
 	return &Secret{}
 }
 
-func (obj Secret) save() error {
+func (obj Secret) Save(extra map[string]string) error {
+	obj.AgentName = extra["agent_name"]
 	if obj.findByNameAndNamespace().Name == "" {
 		coll := db.GetDmManager().Db.Collection(SecretCollection)
 		_, err := coll.InsertOne(db.GetDmManager().Ctx, obj)
 		if err != nil {
 			log.Println("[ERROR] Insert document:", err.Error())
+			return err
+		}
+	} else {
+		err := obj.Update(obj.findById())
+		if err != nil {
 			return err
 		}
 	}
@@ -58,7 +65,7 @@ func (obj Secret) findById() K8sSecret {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	temp := new(Secret)
@@ -77,7 +84,7 @@ func (obj Secret) findByNameAndNamespace() K8sSecret {
 		"$and": []bson.M{
 			{"obj.metadata.name": obj.Obj.Name},
 			{"obj.metadata.namespace": obj.Obj.Namespace},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	temp := new(Secret)
@@ -91,11 +98,11 @@ func (obj Secret) findByNameAndNamespace() K8sSecret {
 	return temp.Obj
 }
 
-func (obj Secret) delete() error {
+func (obj Secret) Delete() error {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	coll := db.GetDmManager().Db.Collection(SecretCollection)
@@ -106,12 +113,17 @@ func (obj Secret) delete() error {
 	return err
 }
 
-func (obj Secret) update() error {
+func (obj Secret) Update(oldObj interface{}) error {
+	var oldObject Secret
+	errorOfUnmarshal := json.Unmarshal([]byte(oldObj.(string)), &oldObject)
+	if errorOfUnmarshal != nil {
+		return errorOfUnmarshal
+	}
 
 	filter := bson.M{
 		"$and": []bson.M{
-			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": obj.KubeClusterId},
+			{"obj.metadata.uid": oldObject.Obj.UID},
+			{"agent_name": obj.AgentName},
 		},
 	}
 	update := bson.M{
@@ -193,11 +205,11 @@ func (object Secret) findByNamespace() []K8sSecret {
 	return k8sObjects
 }
 
-func (object Secret) findBykubeClusterIdAndNamespace() []K8sSecret {
+func (object Secret) findBykubeAgentNameAndNamespace() []K8sSecret {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.namespace": object.Obj.Namespace},
-			{"kubeClusterId": object.KubeClusterId},
+			{"agent_name": object.AgentName},
 		},
 	}
 	objects := []Secret{}
@@ -219,10 +231,10 @@ func (object Secret) findBykubeClusterIdAndNamespace() []K8sSecret {
 	return k8sObjects
 }
 
-func (object Secret) findBykubeClusterId() []K8sSecret {
+func (object Secret) findBykubeAgentName() []K8sSecret {
 	query := bson.M{
 		"$and": []bson.M{
-			{"kubeClusterId": object.KubeClusterId},
+			{"agent_name": object.AgentName},
 		},
 	}
 	objects := []Secret{}
@@ -249,7 +261,7 @@ func (object Secret) findByName() K8sSecret {
 		"$and": []bson.M{
 			{"obj.metadata.name": object.Obj.Name},
 			{"obj.metadata.namespace": object.Obj.Namespace},
-			{"kubeClusterId": object.KubeClusterId},
+			{"agent_name": object.AgentName},
 		},
 	}
 	temp := new(Secret)
