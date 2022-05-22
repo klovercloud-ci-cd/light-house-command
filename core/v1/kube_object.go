@@ -7,8 +7,6 @@ import (
 type KubeObject interface {
 	save() error
 	delete() error
-	saveByClusterId(clusterId string) error
-	deleteByClusterId(clusterId string) error
 	update() error
 }
 

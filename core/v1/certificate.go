@@ -25,18 +25,6 @@ type Certificate struct {
 	KubeClusterId      string         `json:"kubeClusterId" bson:"kubeClusterId"`
 }
 
-func (obj Certificate) saveByClusterId(clusterId string) error {
-	obj.KubeClusterId = clusterId
-	if obj.findByNameAndNamespace().Name == "" {
-		coll := db.GetDmManager().Db.Collection(CertificateCollection)
-		_, err := coll.InsertOne(db.GetDmManager().Ctx, obj)
-		if err != nil {
-			log.Println("[ERROR] Insert document:", err.Error())
-			return err
-		}
-	}
-	return nil
-}
 func (obj Certificate) findByNameAndNamespace() K8sCertificate {
 	query := bson.M{
 		"$and": []bson.M{
@@ -55,21 +43,6 @@ func (obj Certificate) findByNameAndNamespace() K8sCertificate {
 		log.Println("[ERROR]", err)
 	}
 	return temp.Obj
-}
-
-func (obj Certificate) deleteByClusterId(clusterId string) error {
-	query := bson.M{
-		"$and": []bson.M{
-			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": clusterId},
-		},
-	}
-	coll := db.GetDmManager().Db.Collection(CertificateCollection)
-	_, err := coll.DeleteOne(db.GetDmManager().Ctx, query)
-	if err != nil {
-		log.Println("[ERROR]", err)
-	}
-	return err
 }
 
 func NewCertificate() KubeObject {

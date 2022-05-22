@@ -25,34 +25,6 @@ type Pod struct {
 	KubeClusterId      string `json:"kubeClusterId" bson:"kubeClusterId"`
 }
 
-func (obj Pod) saveByClusterId(clusterId string) error {
-	obj.KubeClusterId = clusterId
-	if obj.findByNameAndNamespace().Name == "" {
-		//log.Println("CPU usages:",obj.Obj.Spec.Containers[0].Resources.Requests["cpu"])
-		coll := db.GetDmManager().Db.Collection(PodCollection)
-		_, err := coll.InsertOne(db.GetDmManager().Ctx, obj)
-		if err != nil {
-			log.Println("[ERROR] Insert document:", err.Error())
-			return err
-		}
-	} else {
-		log.Println("saving pod:", obj.Obj.Name+" exists!")
-		err := obj.delete()
-		if err != nil {
-			return err
-		}
-		log.Println("again saving pod status:", obj.Obj.Status.Phase)
-		coll := db.GetDmManager().Db.Collection(PodCollection)
-		_, err = coll.InsertOne(db.GetDmManager().Ctx, obj)
-		if err != nil {
-			log.Println("[ERROR] Insert document:", err.Error())
-			return err
-		}
-	}
-	//obj.calculateResource().add()
-	return nil
-}
-
 func (obj Pod) deleteAll() error {
 	query := bson.M{}
 	coll := db.GetDmManager().Db.Collection(PodCollection)
@@ -61,26 +33,6 @@ func (obj Pod) deleteAll() error {
 	if err != nil {
 		log.Println("Failed to delete pod [ERROR]", err)
 	}
-	return err
-}
-
-func (obj Pod) deleteByClusterId(clusterId string) error {
-	obj.KubeClusterId = clusterId
-	query := bson.M{
-		"$and": []bson.M{
-			{"obj.metadata.name": obj.Obj.Name},
-			{"obj.metadata.namespace": obj.Obj.Namespace},
-			{"obj.kind": "Pod"},
-			{"kubeClusterId": clusterId},
-		},
-	}
-	coll := db.GetDmManager().Db.Collection(PodCollection)
-	_, err := coll.DeleteOne(db.GetDmManager().Ctx, query)
-
-	if err != nil {
-		log.Println("Failed to delete pod [ERROR]", err)
-	}
-	//obj.calculateResource().remove()
 	return err
 }
 

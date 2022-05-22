@@ -35,33 +35,6 @@ func (obj Node) deleteAll() error {
 	}
 	return err
 }
-func (obj Node) saveByClusterId(clusterId string) error {
-	obj.KubeClusterId = clusterId
-	if obj.findByNameAndClusterId().Name == "" {
-		coll := db.GetDmManager().Db.Collection(NodeCollection)
-		_, err := coll.InsertOne(db.GetDmManager().Ctx, obj)
-		if err != nil {
-			log.Println("[ERROR] Insert document:", err.Error())
-			return err
-		}
-	}
-	return nil
-}
-
-func (obj Node) deleteByClusterId(clusterId string) error {
-	query := bson.M{
-		"$and": []bson.M{
-			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": clusterId},
-		},
-	}
-	coll := db.GetDmManager().Db.Collection(NodeCollection)
-	_, err := coll.DeleteOne(db.GetDmManager().Ctx, query)
-	if err != nil {
-		log.Println("[ERROR]", err)
-	}
-	return err
-}
 
 func NewNode() KubeObject {
 	return &Node{}

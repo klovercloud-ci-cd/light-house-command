@@ -35,33 +35,6 @@ func (obj ClusterRole) deleteAll() error {
 	}
 	return err
 }
-func (obj ClusterRole) saveByClusterId(clusterId string) error {
-	obj.KubeClusterId = clusterId
-	if obj.findByName().Name == "" {
-		coll := db.GetDmManager().Db.Collection(ClusterRoleCollection)
-		_, err := coll.InsertOne(db.GetDmManager().Ctx, obj)
-		if err != nil {
-			log.Println("[ERROR] Insert document:", err.Error())
-			return err
-		}
-	}
-	return nil
-}
-
-func (obj ClusterRole) deleteByClusterId(clusterId string) error {
-	query := bson.M{
-		"$and": []bson.M{
-			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": clusterId},
-		},
-	}
-	coll := db.GetDmManager().Db.Collection(ClusterRoleCollection)
-	_, err := coll.DeleteOne(db.GetDmManager().Ctx, query)
-	if err != nil {
-		log.Println("[ERROR]", err)
-	}
-	return err
-}
 
 func NewClusterRole() KubeObject {
 	return &ClusterRole{}

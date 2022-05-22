@@ -36,34 +36,6 @@ func (obj Service) deleteAll() error {
 	}
 	return err
 }
-func (obj Service) saveByClusterId(clusterId string) error {
-	obj.KubeClusterId = clusterId
-	if obj.findByNameAndNamespace().Name == "" {
-		coll := db.GetDmManager().Db.Collection(ServiceCollection)
-		_, err := coll.InsertOne(db.GetDmManager().Ctx, obj)
-		if err != nil {
-			log.Println("[ERROR] Insert document:", err.Error())
-			return err
-		}
-	}
-	return nil
-}
-
-func (obj Service) deleteByClusterId(clusterId string) error {
-	query := bson.M{
-		"$and": []bson.M{
-			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": clusterId},
-		},
-	}
-	coll := db.GetDmManager().Db.Collection(ServiceCollection)
-	_, err := coll.DeleteOne(db.GetDmManager().Ctx, query)
-
-	if err != nil {
-		log.Println("[ERROR]", err)
-	}
-	return err
-}
 
 func NewService() KubeObject {
 	return &Service{}

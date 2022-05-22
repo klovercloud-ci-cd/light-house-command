@@ -36,34 +36,6 @@ func (obj ConfigMap) deleteAll() error {
 	}
 	return err
 }
-func (obj ConfigMap) saveByClusterId(clusterId string) error {
-	obj.KubeClusterId = clusterId
-	if obj.findByNameAndNamespace().Name == "" {
-		coll := db.GetDmManager().Db.Collection(ConfigmapCollection)
-		_, err := coll.InsertOne(db.GetDmManager().Ctx, obj)
-		if err != nil {
-			log.Println("[ERROR] Insert document:", err.Error())
-			return err
-		}
-	}
-	return nil
-}
-
-func (obj ConfigMap) deleteByClusterId(clusterId string) error {
-	log.Println("deleting by clusterId:", clusterId, " and UID", obj.Obj.UID)
-	query := bson.M{
-		"$and": []bson.M{
-			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": clusterId},
-		},
-	}
-	coll := db.GetDmManager().Db.Collection(ConfigmapCollection)
-	_, err := coll.DeleteMany(db.GetDmManager().Ctx, query)
-	if err != nil {
-		log.Println("Failed to delete CM, [ERROR]", err)
-	}
-	return err
-}
 
 func NewConfigMap() KubeObject {
 	return &ConfigMap{}

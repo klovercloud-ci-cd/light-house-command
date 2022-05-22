@@ -35,33 +35,6 @@ func (obj DaemonSet) deleteAll() error {
 	}
 	return err
 }
-func (obj DaemonSet) saveByClusterId(clusterId string) error {
-	obj.KubeClusterId = clusterId
-	if obj.findByNameAndNamespace().Name == "" {
-		coll := db.GetDmManager().Db.Collection(DaemonSetCollection)
-		_, err := coll.InsertOne(db.GetDmManager().Ctx, obj)
-		if err != nil {
-			log.Println("[ERROR] Insert document:", err.Error())
-			return err
-		}
-	}
-	return nil
-}
-
-func (obj DaemonSet) deleteByClusterId(clusterId string) error {
-	query := bson.M{
-		"$and": []bson.M{
-			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": clusterId},
-		},
-	}
-	coll := db.GetDmManager().Db.Collection(DaemonSetCollection)
-	_, err := coll.DeleteOne(db.GetDmManager().Ctx, query)
-	if err != nil {
-		log.Println("[ERROR]", err)
-	}
-	return err
-}
 
 func NewDaemonSet() KubeObject {
 	return &DaemonSet{}

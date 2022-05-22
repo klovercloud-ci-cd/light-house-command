@@ -36,35 +36,6 @@ func (obj Deployment) deleteAll() error {
 	}
 	return err
 }
-func (obj Deployment) saveByClusterId(clusterId string) error {
-	obj.KubeClusterId = clusterId
-	log.Println("Saving: ", obj.KubeClusterId, "Replica: ", obj.Obj.Spec.Replicas)
-	if obj.findByNameAndNamespace().Name == "" {
-		coll := db.GetDmManager().Db.Collection(DeploymentCollection)
-		_, err := coll.InsertOne(db.GetDmManager().Ctx, obj)
-		if err != nil {
-			log.Println("[ERROR] Insert document:", err.Error())
-			return err
-		}
-	}
-	return nil
-}
-
-func (obj Deployment) deleteByClusterId(clusterId string) error {
-	query := bson.M{
-		"$and": []bson.M{
-			{"obj.metadata.uid": obj.Obj.UID},
-			{"kubeClusterId": clusterId},
-		},
-	}
-	coll := db.GetDmManager().Db.Collection(DeploymentCollection)
-	_, err := coll.DeleteOne(db.GetDmManager().Ctx, query)
-
-	if err != nil {
-		log.Println("[DELETING ERROR]", err)
-	}
-	return err
-}
 
 func NewDeployment() KubeObject {
 	return &Deployment{}
