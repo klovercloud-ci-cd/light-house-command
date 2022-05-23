@@ -24,6 +24,27 @@ type MessageHeader struct {
 	Extras  map[string]string `json:"extras"`
 }
 
+// EventSource contains information for an event.
+type EventSource struct {
+	// Component from which the event is generated.
+	// +optional
+	Component string `json:"component,omitempty" protobuf:"bytes,1,opt,name=component" bson:"component"`
+	// Node name on which the event is generated.
+	// +optional
+	Host string `json:"host,omitempty" protobuf:"bytes,2,opt,name=host" bson:"host"`
+}
+
+// EventSeries contain information on series of events, i.e. thing that was/is happening
+// continuously for some time.
+type EventSeries struct {
+	// Number of occurrences in this series up to the last heartbeat time
+	Count int32 `json:"count,omitempty" protobuf:"varint,1,name=count" bson:"count"`
+	// Time of the last occurrence observed
+	LastObservedTime metav1.MicroTime `json:"lastObservedTime,omitempty" protobuf:"bytes,2,name=lastObservedTime" bson:"lastObservedTime"`
+
+	// +k8s:deprecated=state,protobuf=3
+}
+
 type OwnerReference struct {
 	// API version of the referent.
 	APIVersion string `json:"apiVersion" protobuf:"bytes,5,opt,name=apiVersion" bson:"apiVersion"`
