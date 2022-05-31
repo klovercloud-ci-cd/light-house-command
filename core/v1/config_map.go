@@ -44,7 +44,8 @@ func NewConfigMap() KubeObject {
 
 func (obj ConfigMap) Save(extra map[string]string) error {
 	obj.AgentName = extra["agent_name"]
-	if obj.findByNameAndNamespace().Name == "" {
+	existing:=obj.findByNameAndNamespace()
+	if existing.ObjectMeta.Name == "" {
 		coll := db.GetDmManager().Db.Collection(ConfigmapCollection)
 		_, err := coll.InsertOne(db.GetDmManager().Ctx, obj)
 		if err != nil {
@@ -52,7 +53,7 @@ func (obj ConfigMap) Save(extra map[string]string) error {
 			return err
 		}
 	} else {
-		err := obj.Update(obj.findById())
+		err := obj.Update(ConfigMap{Obj:obj.findByNameAndNamespace(), AgentName: obj.AgentName},obj.AgentName)
 		if err != nil {
 			return err
 		}
@@ -97,11 +98,12 @@ func (object ConfigMap) findByNameAndNamespace() K8sConfigMap {
 	return temp.Obj
 }
 
-func (obj ConfigMap) Delete() error {
+func (obj ConfigMap) Delete(agent string) error {
 	query := bson.M{
 		"$and": []bson.M{
-			{"obj.metadata.uid": obj.Obj.UID},
-			{"agent_name": obj.AgentName},
+			{"obj.metadata.name": obj.Obj.Name},
+			{"obj.metadata.namespace": obj.Obj.Namespace},
+			{"agent_name": agent},
 		},
 	}
 	coll := db.GetDmManager().Db.Collection(ConfigmapCollection)
@@ -112,16 +114,18 @@ func (obj ConfigMap) Delete() error {
 	return err
 }
 
-func (obj ConfigMap) Update(oldObj interface{}) error {
+func (obj ConfigMap) Update(oldObj interface{},agent string) error {
 	var oldObject ConfigMap
-	errorOfUnmarshal := json.Unmarshal([]byte(oldObj.(string)), &oldObject)
+	body, _ := json.Marshal(oldObj)
+	errorOfUnmarshal := json.Unmarshal(body, &oldObject)
 	if errorOfUnmarshal != nil {
 		return errorOfUnmarshal
 	}
 	filter := bson.M{
 		"$and": []bson.M{
-			{"obj.metadata.uid": obj.Obj.UID},
-			{"agent_name": obj.AgentName},
+			{"obj.metadata.name": obj.Obj.Name},
+			{"obj.metadata.namespace": obj.Obj.Namespace},
+			{"agent_name": agent},
 		},
 	}
 	update := bson.M{

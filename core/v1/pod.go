@@ -51,7 +51,7 @@ func (obj Pod) Save(extra map[string]string) error {
 			return err
 		}
 	} else {
-		err := obj.Update(obj.findById())
+		err := obj.Update(Pod{Obj:obj.findByNameAndNamespace(), AgentName: obj.AgentName},obj.AgentName)
 		if err != nil {
 			return err
 		}
@@ -82,7 +82,6 @@ func (obj Pod) findByNameAndNamespace() K8sPod {
 		"$and": []bson.M{
 			{"obj.metadata.name": obj.Obj.Name},
 			{"obj.metadata.namespace": obj.Obj.Namespace},
-			{"obj.kind": "Pod"},
 			{"agent_name": obj.AgentName},
 		},
 	}
@@ -122,11 +121,12 @@ func (obj Pod) findByLabel() []K8sPod {
 	return k8sObjects
 }
 
-func (obj Pod) Delete() error {
+func (obj Pod) Delete(agent string) error {
 	query := bson.M{
 		"$and": []bson.M{
-			{"obj.metadata.uid": obj.Obj.UID},
-			{"agent_name": obj.AgentName},
+			{"obj.metadata.name": obj.Obj.Name},
+			{"obj.metadata.namespace": obj.Obj.Namespace},
+			{"agent_name": agent},
 		},
 	}
 	log.Println("deleting pod:", obj.Obj.Name+"!")
@@ -139,9 +139,10 @@ func (obj Pod) Delete() error {
 	return err
 }
 
-func (obj Pod) Update(oldObj interface{}) error {
+func (obj Pod) Update(oldObj interface{},agent string) error {
 	var oldObject Pod
-	errorOfUnmarshal := json.Unmarshal([]byte(oldObj.(string)), &oldObject)
+	body, _ := json.Marshal(oldObj)
+	errorOfUnmarshal := json.Unmarshal(body, &oldObject)
 	if errorOfUnmarshal != nil {
 		return errorOfUnmarshal
 	}
@@ -149,7 +150,7 @@ func (obj Pod) Update(oldObj interface{}) error {
 		"$and": []bson.M{
 			{"obj.metadata.name": oldObject.Obj.Name},
 			{"obj.metadata.namespace": oldObject.Obj.Namespace},
-			{"agent_name": obj.AgentName},
+			{"agent_name": agent},
 		},
 	}
 	update := bson.M{

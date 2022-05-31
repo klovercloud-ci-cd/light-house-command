@@ -6,8 +6,8 @@ import (
 
 type KubeObject interface {
 	Save(extra map[string]string) error
-	Delete() error
-	Update(oldObj interface{}) error
+	Delete(agent string) error
+	Update(oldObj interface{},agent string) error
 }
 
 func GetObject(object enums.RESOURCE_TYPE) KubeObject {

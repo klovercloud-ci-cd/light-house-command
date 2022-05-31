@@ -52,7 +52,7 @@ func (obj RoleBinding) Save(extra map[string]string) error {
 			return err
 		}
 	} else {
-		err := obj.Update(obj.findById())
+		err := obj.Update(RoleBinding{Obj:obj.findByNameAndNamespace(), AgentName: obj.AgentName},obj.AgentName)
 		if err != nil {
 			return err
 		}
@@ -96,11 +96,12 @@ func (obj RoleBinding) findByNameAndNamespace() K8sRoleBinding {
 	return temp.Obj
 }
 
-func (obj RoleBinding) Delete() error {
+func (obj RoleBinding) Delete(agent string)  error {
 	query := bson.M{
 		"$and": []bson.M{
-			{"obj.metadata.uid": obj.Obj.UID},
-			{"agent_name": obj.AgentName},
+			{"obj.metadata.namespace": obj.Obj.Namespace},
+			{"obj.metadata.name": obj.Obj.Name},
+			{"agent_name": agent},
 		},
 	}
 	coll := db.GetDmManager().Db.Collection(RoleBindingCollection)
@@ -111,17 +112,18 @@ func (obj RoleBinding) Delete() error {
 	return err
 }
 
-func (obj RoleBinding) Update(oldObj interface{}) error {
+func (obj RoleBinding) Update(oldObj interface{},agent string) error {
 	var oldObject RoleBinding
-	errorOfUnmarshal := json.Unmarshal([]byte(oldObj.(string)), &oldObject)
+	body, _ := json.Marshal(oldObj)
+	errorOfUnmarshal := json.Unmarshal(body, &oldObject)
 	if errorOfUnmarshal != nil {
 		return errorOfUnmarshal
 	}
-
 	filter := bson.M{
 		"$and": []bson.M{
-			{"obj.metadata.uid": oldObject.Obj.UID},
-			{"agent_name": obj.AgentName},
+			{"obj.metadata.namespace": obj.Obj.Namespace},
+			{"obj.metadata.name": obj.Obj.Name},
+			{"agent_name": agent},
 		},
 	}
 	update := bson.M{

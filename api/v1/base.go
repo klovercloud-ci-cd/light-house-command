@@ -14,7 +14,7 @@ func Router(g *echo.Group) {
 }
 
 func KubeEvents(g *echo.Group) {
-	g.POST("/", StoreKubeEvents)
+	g.POST("", StoreKubeEvents)
 }
 
 func StoreKubeEvents(context echo.Context) error {
@@ -39,14 +39,14 @@ func StoreKubeEvents(context echo.Context) error {
 		}
 		err = json.Unmarshal(data, &body)
 		if err != nil {
-			log.Println("marshaling error: ", err.Error())
+			log.Println("Unmarshalling error: ", err.Error())
 			log.Println(err.Error())
 		}
 
 		var oldKubeObject v1.KubeObject
-		oldKubeObject = v1.GetObject(enums.RESOURCE_TYPE(kubeEvents.Header.Extras["obj"]))
+		oldKubeObject = v1.GetObject(enums.RESOURCE_TYPE(kubeEvents.Header.Extras["object"]))
 		var newKubeObject v1.KubeObject
-		newKubeObject = v1.GetObject(enums.RESOURCE_TYPE(kubeEvents.Header.Extras["obj"]))
+		newKubeObject = v1.GetObject(enums.RESOURCE_TYPE(kubeEvents.Header.Extras["object"]))
 
 		var tempOldBody TempBody
 		tempOldBody.Obj = body.OldK8sObj
@@ -66,67 +66,44 @@ func StoreKubeEvents(context echo.Context) error {
 			log.Println("marshaling error: ", err.Error())
 			log.Println(err.Error())
 		}
-		err = newKubeObject.Update(oldKubeObject)
+		err = newKubeObject.Update(oldKubeObject,kubeEvents.Header.Extras["agent"])
 		if err != nil {
 			return common.GenerateErrorResponse(context, nil, err.Error())
 		}
 		return common.GenerateSuccessResponse(context, newKubeObject, nil, "Successfully Updated!")
 	} else if kubeEvents.Header.Command == enums.ADD {
-		var body v1.KubeEventMessage
-		data, err := json.MarshalIndent(kubeEvents.Body, "", "  ")
-		if err != nil {
-			log.Println("marshaling error: ", err.Error())
-		}
-		err = json.Unmarshal(data, &body)
-		if err != nil {
-			log.Println("marshaling error: ", err.Error())
-			log.Println(err.Error())
-		}
 		var kubeObject v1.KubeObject
-		kubeObject = v1.GetObject(enums.RESOURCE_TYPE(kubeEvents.Header.Extras["obj"]))
+		kubeObject = v1.GetObject(enums.RESOURCE_TYPE(kubeEvents.Header.Extras["object"]))
 		var tempOldBody TempBody
-		tempOldBody.Obj = body.Body
+		tempOldBody.Obj = kubeEvents.Body
 		old, err := json.MarshalIndent(tempOldBody, "", "  ")
 		err = json.Unmarshal(old, &kubeObject)
 		if err != nil {
 			log.Println("marshaling error: ", err.Error())
 			log.Println(err.Error())
 		}
-		extra["obj"] = kubeEvents.Header.Extras["obj"]
-		extra["agentName"] = kubeEvents.Header.Extras["agent"]
+		extra["agent_name"] = kubeEvents.Header.Extras["agent"]
 		err = kubeObject.Save(extra)
 		if err != nil {
 			return common.GenerateErrorResponse(context, nil, err.Error())
 		}
-		return common.GenerateSuccessResponse(context, body, nil, "Successfully Added!")
+		return common.GenerateSuccessResponse(context,kubeEvents.Body, nil, "Successfully Added!")
 	} else if kubeEvents.Header.Command == enums.DELETE {
-		var body v1.KubeEventMessage
-		data, err := json.MarshalIndent(kubeEvents.Body, "", "  ")
-		if err != nil {
-			log.Println("marshaling error: ", err.Error())
-		}
-		err = json.Unmarshal(data, &body)
-		if err != nil {
-			log.Println("marshaling error: ", err.Error())
-			log.Println(err.Error())
-		}
 		var kubeObject v1.KubeObject
-		kubeObject = v1.GetObject(enums.RESOURCE_TYPE(kubeEvents.Header.Extras["obj"]))
+		kubeObject = v1.GetObject(enums.RESOURCE_TYPE(kubeEvents.Header.Extras["object"]))
 		var tempOldBody TempBody
-		tempOldBody.Obj = body.Body
+		tempOldBody.Obj = kubeEvents.Body
 		old, err := json.MarshalIndent(tempOldBody, "", "  ")
 		err = json.Unmarshal(old, &kubeObject)
 		if err != nil {
 			log.Println("marshaling error: ", err.Error())
 			log.Println(err.Error())
 		}
-		extra["obj"] = kubeEvents.Header.Extras["obj"]
-		extra["agentName"] = kubeEvents.Header.Extras["agent"]
-		err = kubeObject.Delete()
+		err = kubeObject.Delete(kubeEvents.Header.Extras["agent"])
 		if err != nil {
 			return common.GenerateErrorResponse(context, nil, err.Error())
 		}
-		return common.GenerateSuccessResponse(context, body, nil, "Successfully Deleted!")
+		return common.GenerateSuccessResponse(context, kubeEvents.Body, nil, "Successfully Deleted!")
 	}
 	return nil
 }

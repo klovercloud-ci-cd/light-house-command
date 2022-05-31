@@ -51,14 +51,13 @@ func (obj ClusterRole) Save(extra map[string]string) error {
 			return err
 		}
 	} else {
-		err := obj.Update(obj.findByName())
+		err := obj.Update(ClusterRole{Obj:obj.findByName(), AgentName: obj.AgentName},obj.AgentName)
 		if err != nil {
 			return err
 		}
 	}
 	return nil
 }
-
 func (obj ClusterRole) findById() K8sClusterRole {
 	query := bson.M{
 		"$and": []bson.M{
@@ -95,11 +94,11 @@ func (obj ClusterRole) findByName() K8sClusterRole {
 	return temp.Obj
 }
 
-func (obj ClusterRole) Delete() error {
+func (obj ClusterRole) Delete(agent string) error {
 	query := bson.M{
 		"$and": []bson.M{
-			{"obj.metadata.uid": obj.Obj.UID},
-			{"agent_name": obj.AgentName},
+			{"obj.metadata.name": obj.Obj.Name},
+			{"agent_name": agent},
 		},
 	}
 	coll := db.GetDmManager().Db.Collection(ClusterRoleCollection)
@@ -124,17 +123,18 @@ func (obj ClusterRole) deleteAllBykubeAgentName() error {
 	return err
 }
 
-func (obj ClusterRole) Update(oldObj interface{}) error {
+func (obj ClusterRole) Update(oldObj interface{},agent string) error {
 	var oldObject ClusterRole
-	errorOfUnmarshal := json.Unmarshal([]byte(oldObj.(string)), &oldObject)
+	body, _ := json.Marshal(oldObj)
+	errorOfUnmarshal := json.Unmarshal(body, &oldObject)
 	if errorOfUnmarshal != nil {
 		return errorOfUnmarshal
 	}
 
 	filter := bson.M{
 		"$and": []bson.M{
-			{"obj.metadata.uid": oldObject.Obj.UID},
-			{"agent_name": obj.AgentName},
+			{"obj.metadata.name": obj.Obj.Name},
+			{"agent_name": agent},
 		},
 	}
 	update := bson.M{

@@ -51,7 +51,7 @@ func (obj NetworkPolicy) Save(extra map[string]string) error {
 			return err
 		}
 	} else {
-		err := obj.Update(obj.findById())
+		err := obj.Update(NetworkPolicy{Obj:obj.findByNameAndNamespace(), AgentName: obj.AgentName},obj.AgentName)
 		if err != nil {
 			return err
 		}
@@ -96,11 +96,12 @@ func (obj NetworkPolicy) findByNameAndNamespace() K8sNetworkPolicy {
 	return temp.Obj
 }
 
-func (obj NetworkPolicy) Delete() error {
+func (obj NetworkPolicy) Delete(agent string) error {
 	query := bson.M{
 		"$and": []bson.M{
-			{"obj.metadata.uid": obj.Obj.UID},
-			{"agent_name": obj.AgentName},
+			{"obj.metadata.name": obj.Obj.Name},
+			{"obj.metadata.namespace": obj.Obj.Namespace},
+			{"agent_name": agent},
 		},
 	}
 	coll := db.GetDmManager().Db.Collection(NetworkPolicyCollection)
@@ -111,16 +112,18 @@ func (obj NetworkPolicy) Delete() error {
 	return err
 }
 
-func (obj NetworkPolicy) Update(oldObj interface{}) error {
+func (obj NetworkPolicy) Update(oldObj interface{},agent string) error {
 	var oldObject NetworkPolicy
-	errorOfUnmarshal := json.Unmarshal([]byte(oldObj.(string)), &oldObject)
+	body, _ := json.Marshal(oldObj)
+	errorOfUnmarshal := json.Unmarshal(body, &oldObject)
 	if errorOfUnmarshal != nil {
 		return errorOfUnmarshal
 	}
 	filter := bson.M{
 		"$and": []bson.M{
-			{"obj.metadata.uid": oldObject.Obj.UID},
-			{"agent_name": obj.AgentName},
+			{"obj.metadata.name": obj.Obj.Name},
+			{"obj.metadata.namespace": obj.Obj.Namespace},
+			{"agent_name": agent},
 		},
 	}
 	update := bson.M{

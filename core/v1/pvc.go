@@ -52,7 +52,7 @@ func (obj PersistentVolumeClaim) Save(extra map[string]string) error {
 			return err
 		}
 	} else {
-		err := obj.Update(obj.findById())
+		err := obj.Update(PersistentVolumeClaim{Obj:obj.findByNameAndNamespace(), AgentName: obj.AgentName},obj.AgentName)
 		if err != nil {
 			return err
 		}
@@ -96,11 +96,12 @@ func (obj PersistentVolumeClaim) findById() K8sPersistentVolumeClaim {
 	return temp.Obj
 }
 
-func (obj PersistentVolumeClaim) Delete() error {
+func (obj PersistentVolumeClaim) Delete(agent string) error {
 	query := bson.M{
 		"$and": []bson.M{
-			{"obj.metadata.uid": obj.Obj.UID},
-			{"agent_name": obj.AgentName},
+			{"obj.metadata.name": obj.Obj.Name},
+			{"obj.metadata.namespace": obj.Obj.Namespace},
+			{"agent_name": agent},
 		},
 	}
 	coll := db.GetDmManager().Db.Collection(PVCCollection)
@@ -111,17 +112,18 @@ func (obj PersistentVolumeClaim) Delete() error {
 	return err
 }
 
-func (obj PersistentVolumeClaim) Update(oldObj interface{}) error {
+func (obj PersistentVolumeClaim) Update(oldObj interface{},agent string) error {
 	var oldObject PersistentVolumeClaim
-	errorOfUnmarshal := json.Unmarshal([]byte(oldObj.(string)), &oldObject)
+	body, _ := json.Marshal(oldObj)
+	errorOfUnmarshal := json.Unmarshal(body, &oldObject)
 	if errorOfUnmarshal != nil {
 		return errorOfUnmarshal
 	}
-
 	filter := bson.M{
 		"$and": []bson.M{
-			{"obj.metadata.uid": oldObject.Obj.UID},
-			{"agent_name": obj.AgentName},
+			{"obj.metadata.name": obj.Obj.Name},
+			{"obj.metadata.namespace": obj.Obj.Namespace},
+			{"agent_name": agent},
 		},
 	}
 	update := bson.M{

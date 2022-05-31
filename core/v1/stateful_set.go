@@ -52,7 +52,7 @@ func (obj StatefulSet) Save(extra map[string]string) error {
 			return err
 		}
 	} else {
-		err := obj.Update(obj.findById())
+		err := obj.Update(StatefulSet{Obj:obj.findByNameAndNamespace(), AgentName: obj.AgentName},obj.AgentName)
 		if err != nil {
 			return err
 		}
@@ -97,11 +97,12 @@ func (obj StatefulSet) findByNameAndNamespace() K8sStatefulSet {
 	return temp.Obj
 }
 
-func (obj StatefulSet) Delete() error {
+func (obj StatefulSet) Delete(agent string) error {
 	query := bson.M{
 		"$and": []bson.M{
-			{"obj.metadata.uid": obj.Obj.UID},
-			{"agent_name": obj.AgentName},
+			{"obj.metadata.namespace": obj.Obj.Namespace},
+			{"obj.metadata.name": obj.Obj.Name},
+			{"agent_name": agent},
 		},
 	}
 	coll := db.GetDmManager().Db.Collection(StatefulSetCollection)
@@ -112,17 +113,18 @@ func (obj StatefulSet) Delete() error {
 	return err
 }
 
-func (obj StatefulSet) Update(oldObj interface{}) error {
+func (obj StatefulSet) Update(oldObj interface{},agent string) error {
 	var oldObject StatefulSet
-	errorOfUnmarshal := json.Unmarshal([]byte(oldObj.(string)), &oldObject)
+	body, _ := json.Marshal(oldObj)
+	errorOfUnmarshal := json.Unmarshal(body, &oldObject)
 	if errorOfUnmarshal != nil {
 		return errorOfUnmarshal
 	}
-
 	filter := bson.M{
 		"$and": []bson.M{
-			{"obj.metadata.uid": oldObject.Obj.UID},
-			{"agent_name": obj.AgentName},
+			{"obj.metadata.namespace": obj.Obj.Namespace},
+			{"obj.metadata.name": obj.Obj.Name},
+			{"agent_name": agent},
 		},
 	}
 	update := bson.M{

@@ -31,7 +31,6 @@ func (obj Certificate) findByNameAndNamespace() K8sCertificate {
 		"$and": []bson.M{
 			{"obj.metadata.name": obj.Obj.Name},
 			{"obj.metadata.namespace": obj.Obj.Namespace},
-			{"obj.kind": "Pod"},
 			{"agent_name": obj.AgentName},
 		},
 	}
@@ -60,7 +59,7 @@ func (obj Certificate) Save(extra map[string]string) error {
 			return err
 		}
 	} else {
-		err := obj.Update(obj.findById())
+		err := obj.Update(Certificate{Obj:obj.findByNameAndNamespace(), AgentName: obj.AgentName},obj.AgentName)
 		if err != nil {
 			log.Println("[ERROR] Insert document:", err.Error())
 			return err
@@ -87,11 +86,12 @@ func (obj Certificate) findById() K8sCertificate {
 	return temp.Obj
 }
 
-func (obj Certificate) Delete() error {
+func (obj Certificate) Delete(agent string) error {
 	query := bson.M{
 		"$and": []bson.M{
-			{"obj.metadata.uid": obj.Obj.UID},
-			{"agent_name": obj.AgentName},
+			{"obj.metadata.name": obj.Obj.Name},
+			{"obj.metadata.namespace": obj.Obj.Namespace},
+			{"agent_name": agent},
 		},
 	}
 	coll := db.GetDmManager().Db.Collection(CertificateCollection)
@@ -102,17 +102,18 @@ func (obj Certificate) Delete() error {
 	return err
 }
 
-func (obj Certificate) Update(oldObj interface{}) error {
+func (obj Certificate) Update(oldObj interface{},agent string) error {
 	var oldObject Certificate
-	errorOfUnmarshal := json.Unmarshal([]byte(oldObj.(string)), &oldObject)
+	body, _ := json.Marshal(oldObj)
+	errorOfUnmarshal := json.Unmarshal(body, &oldObject)
 	if errorOfUnmarshal != nil {
 		return errorOfUnmarshal
 	}
-
 	filter := bson.M{
 		"$and": []bson.M{
-			{"obj.metadata.uid": oldObject.Obj.UID},
-			{"agent_name": obj.AgentName},
+			{"obj.metadata.name": obj.Obj.Name},
+			{"obj.metadata.namespace": obj.Obj.Namespace},
+			{"agent_name": agent},
 		},
 	}
 	update := bson.M{

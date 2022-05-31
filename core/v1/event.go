@@ -96,7 +96,7 @@ func (e Event) Save(extra map[string]string) error {
 			return err
 		}
 	} else {
-		err := e.Update(e.findById())
+		err := e.Update(Event{Obj:e.findByNameAndNamespace(), AgentName: e.AgentName},e.AgentName)
 		if err != nil {
 			return err
 		}
@@ -104,11 +104,12 @@ func (e Event) Save(extra map[string]string) error {
 	return nil
 }
 
-func (e Event) Delete() error {
+func (e Event) Delete(agent string) error {
 	query := bson.M{
 		"$and": []bson.M{
-			{"obj.metadata.uid": e.Obj.UID},
-			{"agent_name": e.AgentName},
+			{"obj.metadata.name": e.Obj.Name},
+			{"obj.metadata.namespace": e.Obj.Namespace},
+			{"agent_name": agent},
 		},
 	}
 	coll := db.GetDmManager().Db.Collection(EventCollection)
@@ -119,18 +120,18 @@ func (e Event) Delete() error {
 	return err
 }
 
-func (e Event) Update(oldObj interface{}) error {
+func (e Event) Update(oldObj interface{},agent string) error {
 	var oldObject Ingress
-	errorOfUnmarshal := json.Unmarshal([]byte(oldObj.(string)), &oldObject)
+	body, _ := json.Marshal(oldObj)
+	errorOfUnmarshal := json.Unmarshal(body, &oldObject)
 	if errorOfUnmarshal != nil {
 		return errorOfUnmarshal
 	}
-
 	filter := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.name": oldObject.Obj.Name},
 			{"obj.metadata.namespace": oldObject.Obj.Namespace},
-			{"agent_name": e.AgentName},
+			{"agent_name":agent},
 		},
 	}
 	update := bson.M{

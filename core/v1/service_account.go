@@ -53,7 +53,7 @@ func (obj ServiceAccount) Save(extra map[string]string) error {
 			return err
 		}
 	} else {
-		err := obj.Update(obj.findById())
+		err := obj.Update(ServiceAccount{Obj:obj.findByNameAndNamespace(), AgentName: obj.AgentName},obj.AgentName)
 		if err != nil {
 			return err
 		}
@@ -98,11 +98,12 @@ func (obj ServiceAccount) findByNameAndNamespace() K8sServiceAccount {
 	return temp.Obj
 }
 
-func (obj ServiceAccount) Delete() error {
+func (obj ServiceAccount) Delete(agent string) error {
 	query := bson.M{
 		"$and": []bson.M{
-			{"obj.metadata.uid": obj.Obj.UID},
-			{"agent_name": obj.AgentName},
+			{"obj.metadata.namespace": obj.Obj.Namespace},
+			{"obj.metadata.name": obj.Obj.Name},
+			{"agent_name": agent},
 		},
 	}
 	coll := db.GetDmManager().Db.Collection(ServiceAccountCollection)
@@ -113,16 +114,18 @@ func (obj ServiceAccount) Delete() error {
 	return err
 }
 
-func (obj ServiceAccount) Update(oldObj interface{}) error {
+func (obj ServiceAccount) Update(oldObj interface{},agent string) error {
 	var oldObject ServiceAccount
-	errorOfUnmarshal := json.Unmarshal([]byte(oldObj.(string)), &oldObject)
+	body, _ := json.Marshal(oldObj)
+	errorOfUnmarshal := json.Unmarshal(body, &oldObject)
 	if errorOfUnmarshal != nil {
 		return errorOfUnmarshal
 	}
 	filter := bson.M{
 		"$and": []bson.M{
-			{"obj.metadata.uid": oldObject.Obj.UID},
-			{"agent_name": obj.AgentName},
+			{"obj.metadata.namespace": obj.Obj.Namespace},
+			{"obj.metadata.name": obj.Obj.Name},
+			{"agent_name": agent},
 		},
 	}
 	update := bson.M{

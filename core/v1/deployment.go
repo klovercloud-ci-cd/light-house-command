@@ -51,7 +51,7 @@ func (obj Deployment) Save(extra map[string]string) error {
 			return err
 		}
 	} else {
-		err := obj.Update(obj.findByNameAndNamespace())
+		err := obj.Update(Deployment{Obj:obj.findByNameAndNamespace(), AgentName: obj.AgentName},obj.AgentName)
 		if err != nil {
 			return err
 		}
@@ -96,11 +96,12 @@ func (obj Deployment) findByNameAndNamespace() K8sDeployment {
 	return temp.Obj
 }
 
-func (obj Deployment) Delete() error {
+func (obj Deployment) Delete(agent string) error {
 	query := bson.M{
 		"$and": []bson.M{
-			{"obj.metadata.uid": obj.Obj.UID},
-			{"agent_name": obj.AgentName},
+			{"obj.metadata.name": obj.Obj.Name},
+			{"obj.metadata.namespace": obj.Obj.Namespace},
+			{"agent_name": agent},
 		},
 	}
 	coll := db.GetDmManager().Db.Collection(DeploymentCollection)
@@ -112,18 +113,18 @@ func (obj Deployment) Delete() error {
 	return err
 }
 
-func (obj Deployment) Update(oldObj interface{}) error {
+func (obj Deployment) Update(oldObj interface{},agent string) error {
 	var oldObject Deployment
-	errorOfUnmarshal := json.Unmarshal([]byte(oldObj.(string)), &oldObject)
+	body, _ := json.Marshal(oldObj)
+	errorOfUnmarshal := json.Unmarshal(body, &oldObject)
 	if errorOfUnmarshal != nil {
 		return errorOfUnmarshal
 	}
-
 	filter := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.name": oldObject.Obj.Name},
 			{"obj.metadata.namespace": oldObject.Obj.Namespace},
-			{"agent_name": obj.AgentName},
+			{"agent_name": agent},
 		},
 	}
 	update := bson.M{

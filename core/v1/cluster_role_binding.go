@@ -52,7 +52,7 @@ func (obj ClusterRoleBinding) Save(extra map[string]string) error {
 			return err
 		}
 	} else {
-		err := obj.Update(obj.findById())
+		err := obj.Update(ClusterRoleBinding{Obj:obj.findByName(), AgentName: obj.AgentName},obj.AgentName)
 		if err != nil {
 			return err
 		}
@@ -82,7 +82,6 @@ func (object ClusterRoleBinding) findByName() k8sClusterRoleBinding {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.name": object.Obj.Name},
-			{"obj.metadata.namespace": object.Obj.Namespace},
 			{"agent_name": object.AgentName},
 		},
 	}
@@ -122,11 +121,11 @@ func (object ClusterRoleBinding) findBykubeAgentName() []k8sClusterRoleBinding {
 	return k8sObjects
 }
 
-func (obj ClusterRoleBinding) Delete() error {
+func (obj ClusterRoleBinding) Delete(agent string) error {
 	query := bson.M{
 		"$and": []bson.M{
-			{"obj.metadata.uid": obj.Obj.UID},
-			{"agent_name": obj.AgentName},
+			{"obj.metadata.name": obj.Obj.Name},
+			{"agent_name": agent},
 		},
 	}
 	coll := db.GetDmManager().Db.Collection(ClusterRoleBindingCollection)
@@ -137,17 +136,17 @@ func (obj ClusterRoleBinding) Delete() error {
 	return err
 }
 
-func (obj ClusterRoleBinding) Update(oldObj interface{}) error {
+func (obj ClusterRoleBinding) Update(oldObj interface{},agent string) error {
 	var oldObject ClusterRoleBinding
-	errorOfUnmarshal := json.Unmarshal([]byte(oldObj.(string)), &oldObject)
+	body, _ := json.Marshal(oldObj)
+	errorOfUnmarshal := json.Unmarshal(body, &oldObject)
 	if errorOfUnmarshal != nil {
 		return errorOfUnmarshal
 	}
-
 	filter := bson.M{
 		"$and": []bson.M{
-			{"obj.metadata.uid": oldObject.Obj.UID},
-			{"agent_name": obj.AgentName},
+			{"obj.metadata.name": obj.Obj.Name},
+			{"agent_name": agent},
 		},
 	}
 	update := bson.M{

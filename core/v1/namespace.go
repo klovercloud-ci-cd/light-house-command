@@ -58,7 +58,7 @@ func (obj Namespace) Save(extra map[string]string) error {
 			return err
 		}
 	} else {
-		err := obj.Update(obj.findById())
+		err := obj.Update(Namespace{Obj:obj.findByName(), AgentName: obj.AgentName},obj.AgentName)
 		if err != nil {
 			return err
 		}
@@ -66,10 +66,11 @@ func (obj Namespace) Save(extra map[string]string) error {
 	return nil
 }
 
-func (object Namespace) findByNamespace() K8sNamespace {
+func (object Namespace) findByName() K8sNamespace {
 	query := bson.M{
 		"$and": []bson.M{
-			{"obj.metadata.namespace": object.Obj.Namespace},
+			{"obj.metadata.name": object.Obj.Namespace},
+			{"agent_name": object.AgentName},
 		},
 	}
 	temp := new(Namespace)
@@ -164,11 +165,11 @@ func (obj Namespace) findAll() []K8sNamespace {
 	return k8sObjects
 }
 
-func (obj Namespace) Delete() error {
+func (obj Namespace) Delete(agent string) error {
 	query := bson.M{
 		"$and": []bson.M{
-			{"obj.metadata.uid": obj.Obj.UID},
-			{"agent_name": obj.AgentName},
+			{"obj.metadata.name": obj.Obj.Name},
+			{"agent_name": agent},
 		},
 	}
 	coll := db.GetDmManager().Db.Collection(NamespaceCollection)
@@ -180,17 +181,17 @@ func (obj Namespace) Delete() error {
 	return err
 }
 
-func (obj Namespace) Update(oldObj interface{}) error {
+func (obj Namespace) Update(oldObj interface{},agent string) error {
 	var oldObject Namespace
-	errorOfUnmarshal := json.Unmarshal([]byte(oldObj.(string)), &oldObject)
+	body, _ := json.Marshal(oldObj)
+	errorOfUnmarshal := json.Unmarshal(body, &oldObject)
 	if errorOfUnmarshal != nil {
 		return errorOfUnmarshal
 	}
-
 	filter := bson.M{
 		"$and": []bson.M{
-			{"obj.metadata.uid": oldObject.Obj.UID},
-			{"agent_name": obj.AgentName},
+			{"obj.metadata.name": obj.Obj.Name},
+			{"agent_name": agent},
 		},
 	}
 	update := bson.M{
