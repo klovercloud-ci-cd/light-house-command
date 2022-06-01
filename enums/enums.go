@@ -62,6 +62,8 @@ const ( // CERTIFICATE k8s certificate as resource
 	SERVICE_ACCOUNT = RESOURCE_TYPE("serviceAccount")
 	// STATEFULSET k8s statefulset as resource
 	STATEFULSET = RESOURCE_TYPE("statefulset")
+	// EVENT k8s event as resource
+	EVENT=RESOURCE_TYPE("event")
 )
 
 // Command kafka command

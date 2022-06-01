@@ -19,7 +19,7 @@ type K8sEvent struct {
 	TypeMeta `json:",inline" bson:",inline"`
 	// Standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
-	ObjectMeta `json:"objectMeta" protobuf:"bytes,1,opt,name=metadata" bson:"objectMeta"`
+	ObjectMeta `json:"metadata" protobuf:"bytes,1,opt,name=metadata" bson:"objectMeta"`
 
 	// The object that this event is about.
 	InvolvedObject ObjectReference `json:"involvedObject" protobuf:"bytes,2,opt,name=involvedObject" bson:"involvedObject"`
@@ -126,6 +126,9 @@ func (e Event) Update(oldObj interface{},agent string) error {
 	errorOfUnmarshal := json.Unmarshal(body, &oldObject)
 	if errorOfUnmarshal != nil {
 		return errorOfUnmarshal
+	}
+	if e.AgentName == ""{
+		e.AgentName=agent
 	}
 	filter := bson.M{
 		"$and": []bson.M{

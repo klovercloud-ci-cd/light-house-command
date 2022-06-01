@@ -130,7 +130,9 @@ func (obj ClusterRole) Update(oldObj interface{},agent string) error {
 	if errorOfUnmarshal != nil {
 		return errorOfUnmarshal
 	}
-
+	if obj.AgentName == ""{
+		obj.AgentName=agent
+	}
 	filter := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.name": obj.Obj.Name},

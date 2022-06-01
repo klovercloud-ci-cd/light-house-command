@@ -43,6 +43,8 @@ func NewDeployment() KubeObject {
 }
 func (obj Deployment) Save(extra map[string]string) error {
 	obj.AgentName = extra["agent_name"]
+	log.Println(obj)
+	log.Println(obj.findByNameAndNamespace().Name)
 	if obj.findByNameAndNamespace().Name == "" {
 		coll := db.GetDmManager().Db.Collection(DeploymentCollection)
 		_, err := coll.InsertOne(db.GetDmManager().Ctx, obj)
@@ -119,6 +121,9 @@ func (obj Deployment) Update(oldObj interface{},agent string) error {
 	errorOfUnmarshal := json.Unmarshal(body, &oldObject)
 	if errorOfUnmarshal != nil {
 		return errorOfUnmarshal
+	}
+	if obj.AgentName == "" {
+		obj.AgentName = agent
 	}
 	filter := bson.M{
 		"$and": []bson.M{

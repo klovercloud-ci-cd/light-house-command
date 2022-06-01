@@ -190,6 +190,11 @@ func GetObject(object enums.RESOURCE_TYPE) KubeObject {
 				},
 			},
 		}
+	}else if object==enums.EVENT{
+		return &Event{
+			Obj:          K8sEvent{
+			},
+		}
 	}
 	return nil
 

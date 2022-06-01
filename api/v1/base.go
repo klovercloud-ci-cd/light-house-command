@@ -40,9 +40,8 @@ func StoreKubeEvents(context echo.Context) error {
 		err = json.Unmarshal(data, &body)
 		if err != nil {
 			log.Println("Unmarshalling error: ", err.Error())
-			log.Println(err.Error())
+			return common.GenerateErrorResponse(context, nil, err.Error())
 		}
-
 		var oldKubeObject v1.KubeObject
 		oldKubeObject = v1.GetObject(enums.RESOURCE_TYPE(kubeEvents.Header.Extras["object"]))
 		var newKubeObject v1.KubeObject
@@ -55,12 +54,12 @@ func StoreKubeEvents(context echo.Context) error {
 
 		if err != nil {
 			log.Println("marshaling error: ", err.Error())
-			log.Println(err.Error())
+			return common.GenerateErrorResponse(context, nil, err.Error())
 		}
 
 		var tempNewBody TempBody
 		tempNewBody.Obj = body.NewK8sObj
-		newObj, err := json.MarshalIndent(tempOldBody, "", "  ")
+		newObj, err := json.MarshalIndent(tempNewBody, "", "  ")
 		err = json.Unmarshal(newObj, &newKubeObject)
 		if err != nil {
 			log.Println("marshaling error: ", err.Error())
@@ -77,12 +76,19 @@ func StoreKubeEvents(context echo.Context) error {
 		var tempOldBody TempBody
 		tempOldBody.Obj = kubeEvents.Body
 		old, err := json.MarshalIndent(tempOldBody, "", "  ")
+		if err!=nil{
+			return common.GenerateErrorResponse(context, nil, err.Error())
+		}
 		err = json.Unmarshal(old, &kubeObject)
 		if err != nil {
 			log.Println("marshaling error: ", err.Error())
-			log.Println(err.Error())
+			return common.GenerateErrorResponse(context, nil, err.Error())
 		}
-		extra["agent_name"] = kubeEvents.Header.Extras["agent"]
+		if kubeEvents.Header.Extras!=nil{
+			if res,ok:=kubeEvents.Header.Extras["agent"];ok{
+				extra["agent_name"] =res
+			}
+		}
 		err = kubeObject.Save(extra)
 		if err != nil {
 			return common.GenerateErrorResponse(context, nil, err.Error())
@@ -97,7 +103,7 @@ func StoreKubeEvents(context echo.Context) error {
 		err = json.Unmarshal(old, &kubeObject)
 		if err != nil {
 			log.Println("marshaling error: ", err.Error())
-			log.Println(err.Error())
+			return common.GenerateErrorResponse(context, nil, err.Error())
 		}
 		err = kubeObject.Delete(kubeEvents.Header.Extras["agent"])
 		if err != nil {

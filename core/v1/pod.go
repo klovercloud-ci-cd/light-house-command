@@ -140,11 +140,15 @@ func (obj Pod) Delete(agent string) error {
 }
 
 func (obj Pod) Update(oldObj interface{},agent string) error {
+	log.Println("Pod:", obj.Obj.Name,", Status: ",obj.Obj.Status.Phase)
 	var oldObject Pod
 	body, _ := json.Marshal(oldObj)
 	errorOfUnmarshal := json.Unmarshal(body, &oldObject)
 	if errorOfUnmarshal != nil {
 		return errorOfUnmarshal
+	}
+	if obj.AgentName == ""{
+		obj.AgentName=agent
 	}
 	filter := bson.M{
 		"$and": []bson.M{
