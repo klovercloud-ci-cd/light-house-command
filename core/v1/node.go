@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	NodeCollection = "NodeCollection"
+	NodeCollection = "nodeCollection"
 )
 
 type K8sNode struct {
@@ -51,7 +51,7 @@ func (obj Node) Save(extra map[string]string) error {
 			return err
 		}
 	} else {
-		err := obj.Update(Node{Obj:obj.findByNameAndAgentName(), AgentName: obj.AgentName},obj.AgentName)
+		err := obj.Update(Node{Obj: obj.findByNameAndAgentName(), AgentName: obj.AgentName}, obj.AgentName)
 		if err != nil {
 			return err
 		}
@@ -110,15 +110,15 @@ func (obj Node) Delete(agent string) error {
 	return err
 }
 
-func (obj Node) Update(oldObj interface{},agent string) error {
+func (obj Node) Update(oldObj interface{}, agent string) error {
 	var oldObject Node
 	body, _ := json.Marshal(oldObj)
 	errorOfUnmarshal := json.Unmarshal(body, &oldObject)
 	if errorOfUnmarshal != nil {
 		return errorOfUnmarshal
 	}
-	if obj.AgentName == ""{
-		obj.AgentName=agent
+	if obj.AgentName == "" {
+		obj.AgentName = agent
 	}
 	filter := bson.M{
 		"$and": []bson.M{
