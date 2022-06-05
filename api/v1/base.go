@@ -2,9 +2,9 @@ package v1
 
 import (
 	"encoding/json"
-	"github.com/klovercloud/lighthouse-command/api/common"
-	v1 "github.com/klovercloud/lighthouse-command/core/v1"
-	"github.com/klovercloud/lighthouse-command/enums"
+	"github.com/klovercloud-ci-cd/light-house-command/api/common"
+	v1 "github.com/klovercloud-ci-cd/light-house-command/core/v1"
+	"github.com/klovercloud-ci-cd/light-house-command/enums"
 	"github.com/labstack/echo/v4"
 	"log"
 )

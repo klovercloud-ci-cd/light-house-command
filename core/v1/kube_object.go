@@ -1,7 +1,7 @@
 package v1
 
 import (
-	"github.com/klovercloud/lighthouse-command/enums"
+	"github.com/klovercloud-ci-cd/light-house-command/enums"
 )
 
 type KubeObject interface {

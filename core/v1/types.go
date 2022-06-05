@@ -2,7 +2,7 @@ package v1
 
 import (
 	cmmeta "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
-	"github.com/klovercloud/lighthouse-command/enums"
+	"github.com/klovercloud-ci-cd/light-house-command/enums"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"time"

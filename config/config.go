@@ -2,7 +2,7 @@ package config
 
 import (
 	"github.com/joho/godotenv"
-	"github.com/klovercloud/lighthouse-command/enums"
+	"github.com/klovercloud-ci-cd/light-house-command/enums"
 	"log"
 	"os"
 )

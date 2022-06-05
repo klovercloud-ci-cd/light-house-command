@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/go-bongo/bongo"
-	"github.com/klovercloud/lighthouse-command/core/v1/db"
+	"github.com/klovercloud-ci-cd/light-house-command/core/v1/db"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"gopkg.in/mgo.v2/bson"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

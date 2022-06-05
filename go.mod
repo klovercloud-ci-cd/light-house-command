@@ -1,4 +1,4 @@
-module github.com/klovercloud/lighthouse-command
+module github.com/klovercloud-ci-cd/light-house-command
 
 go 1.17
 

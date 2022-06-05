@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/klovercloud/lighthouse-command/api"
-	"github.com/klovercloud/lighthouse-command/config"
+	"github.com/klovercloud-ci-cd/light-house-command/api"
+	"github.com/klovercloud-ci-cd/light-house-command/config"
 )
 
 func main() {

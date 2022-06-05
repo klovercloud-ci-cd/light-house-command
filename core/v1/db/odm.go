@@ -2,7 +2,7 @@ package db
 
 import (
 	"context"
-	"github.com/klovercloud/lighthouse-command/config"
+	"github.com/klovercloud-ci-cd/light-house-command/config"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
