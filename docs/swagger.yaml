@@ -1,0 +1,73 @@
+definitions:
+  common.MetaData:
+    properties:
+      links:
+        items:
+          additionalProperties:
+            type: string
+          type: object
+        type: array
+      page:
+        type: integer
+      page_count:
+        type: integer
+      per_page:
+        type: integer
+      total_count:
+        type: integer
+    type: object
+  common.ResponseDTO:
+    properties:
+      _metadata:
+        $ref: '#/definitions/common.MetaData'
+      data: { }
+      message:
+        type: string
+      status:
+        type: string
+    type: object
+  v1.KubeEventMessage:
+    properties:
+      body: { }
+      header:
+        $ref: '#/definitions/v1.MessageHeader'
+    type: object
+  v1.MessageHeader:
+    properties:
+      command:
+        type: string
+      extras:
+        additionalProperties:
+          type: string
+        type: object
+      offset:
+        type: integer
+    type: object
+info:
+  contact: { }
+  description: Klovercloud-light-house-command API
+  title: Klovercloud-ci-light-house-command API
+paths:
+  /api/v1/kube_events:
+    post:
+      description: Api for storing all kube events
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+              - $ref: '#/definitions/common.ResponseDTO'
+              - properties:
+                  data:
+                    $ref: '#/definitions/v1.KubeEventMessage'
+                type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/common.ResponseDTO'
+      summary: Post api
+      tags:
+        - KubeEvents
+swagger: "2.0"

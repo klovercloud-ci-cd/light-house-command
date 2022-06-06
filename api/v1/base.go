@@ -17,6 +17,15 @@ func KubeEvents(g *echo.Group) {
 	g.POST("", StoreKubeEvents)
 }
 
+// Post... Post Api
+// @Summary Post api
+// @Description Api for storing all kube events
+// @Tags KubeEvents
+// @Produce json
+// @Success 200 {object} common.ResponseDTO{data=v1.KubeEventMessage{}.Body{}}
+// @Forbidden 403 {object} common.ResponseDTO
+// @Failure 400 {object} common.ResponseDTO
+// @Router /api/v1/kube_events [POST]
 func StoreKubeEvents(context echo.Context) error {
 	var kubeEvents v1.KubeEventMessage
 	if err := context.Bind(&kubeEvents); err != nil {
@@ -65,7 +74,7 @@ func StoreKubeEvents(context echo.Context) error {
 			log.Println("marshaling error: ", err.Error())
 			log.Println(err.Error())
 		}
-		err = newKubeObject.Update(oldKubeObject,kubeEvents.Header.Extras["agent"])
+		err = newKubeObject.Update(oldKubeObject, kubeEvents.Header.Extras["agent"])
 		if err != nil {
 			return common.GenerateErrorResponse(context, nil, err.Error())
 		}
@@ -76,7 +85,7 @@ func StoreKubeEvents(context echo.Context) error {
 		var tempOldBody TempBody
 		tempOldBody.Obj = kubeEvents.Body
 		old, err := json.MarshalIndent(tempOldBody, "", "  ")
-		if err!=nil{
+		if err != nil {
 			return common.GenerateErrorResponse(context, nil, err.Error())
 		}
 		err = json.Unmarshal(old, &kubeObject)
@@ -84,22 +93,25 @@ func StoreKubeEvents(context echo.Context) error {
 			log.Println("marshaling error: ", err.Error())
 			return common.GenerateErrorResponse(context, nil, err.Error())
 		}
-		if kubeEvents.Header.Extras!=nil{
-			if res,ok:=kubeEvents.Header.Extras["agent"];ok{
-				extra["agent_name"] =res
+		if kubeEvents.Header.Extras != nil {
+			if res, ok := kubeEvents.Header.Extras["agent"]; ok {
+				extra["agent_name"] = res
 			}
 		}
 		err = kubeObject.Save(extra)
 		if err != nil {
 			return common.GenerateErrorResponse(context, nil, err.Error())
 		}
-		return common.GenerateSuccessResponse(context,kubeEvents.Body, nil, "Successfully Added!")
+		return common.GenerateSuccessResponse(context, kubeEvents.Body, nil, "Successfully Added!")
 	} else if kubeEvents.Header.Command == enums.DELETE {
 		var kubeObject v1.KubeObject
 		kubeObject = v1.GetObject(enums.RESOURCE_TYPE(kubeEvents.Header.Extras["object"]))
 		var tempOldBody TempBody
 		tempOldBody.Obj = kubeEvents.Body
 		old, err := json.MarshalIndent(tempOldBody, "", "  ")
+		if err != nil {
+			return common.GenerateErrorResponse(context, nil, err.Error())
+		}
 		err = json.Unmarshal(old, &kubeObject)
 		if err != nil {
 			log.Println("marshaling error: ", err.Error())

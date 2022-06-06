@@ -59,7 +59,7 @@ func (obj Certificate) Save(extra map[string]string) error {
 			return err
 		}
 	} else {
-		err := obj.Update(Certificate{Obj:obj.findByNameAndNamespace(), AgentName: obj.AgentName},obj.AgentName)
+		err := obj.Update(Certificate{Obj: obj.findByNameAndNamespace(), AgentName: obj.AgentName}, obj.AgentName)
 		if err != nil {
 			log.Println("[ERROR] Insert document:", err.Error())
 			return err
@@ -102,7 +102,7 @@ func (obj Certificate) Delete(agent string) error {
 	return err
 }
 
-func (obj Certificate) Update(oldObj interface{},agent string) error {
+func (obj Certificate) Update(oldObj interface{}, agent string) error {
 	var oldObject Certificate
 	body, _ := json.Marshal(oldObj)
 	errorOfUnmarshal := json.Unmarshal(body, &oldObject)
@@ -110,7 +110,7 @@ func (obj Certificate) Update(oldObj interface{},agent string) error {
 		return errorOfUnmarshal
 	}
 	if obj.AgentName == "" {
-		obj.AgentName=agent
+		obj.AgentName = agent
 	}
 	filter := bson.M{
 		"$and": []bson.M{

@@ -52,7 +52,7 @@ func (obj RoleBinding) Save(extra map[string]string) error {
 			return err
 		}
 	} else {
-		err := obj.Update(RoleBinding{Obj:obj.findByNameAndNamespace(), AgentName: obj.AgentName},obj.AgentName)
+		err := obj.Update(RoleBinding{Obj: obj.findByNameAndNamespace(), AgentName: obj.AgentName}, obj.AgentName)
 		if err != nil {
 			return err
 		}
@@ -96,7 +96,7 @@ func (obj RoleBinding) findByNameAndNamespace() K8sRoleBinding {
 	return temp.Obj
 }
 
-func (obj RoleBinding) Delete(agent string)  error {
+func (obj RoleBinding) Delete(agent string) error {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.namespace": obj.Obj.Namespace},
@@ -112,15 +112,15 @@ func (obj RoleBinding) Delete(agent string)  error {
 	return err
 }
 
-func (obj RoleBinding) Update(oldObj interface{},agent string) error {
+func (obj RoleBinding) Update(oldObj interface{}, agent string) error {
 	var oldObject RoleBinding
 	body, _ := json.Marshal(oldObj)
 	errorOfUnmarshal := json.Unmarshal(body, &oldObject)
 	if errorOfUnmarshal != nil {
 		return errorOfUnmarshal
 	}
-	if obj.AgentName == ""{
-		obj.AgentName=agent
+	if obj.AgentName == "" {
+		obj.AgentName = agent
 	}
 	filter := bson.M{
 		"$and": []bson.M{

@@ -11,10 +11,10 @@
 |  | |  | ' '-' ' |  | |  |   |  |           |  | |  | ' '-' ' '  ''  ' .-'  `) \   --.         \ `--. ' '-' ' |  |  |  | |  |  |  | \ '-'  | |  ||  | \ `-' | 
 `--' `--' .`-  /  `--' `--'   `--'           `--' `--'  `---'   `----'  `----'   `----'          `---'  `---'  `--`--`--' `--`--`--'  `--`--' `--''--'  `---'  
 ```
+
 ## Responsibility
-- Listen Kubernetes event and store k8s objects.
 
-
+- Listens Kubernetes events and stores/updates/deletes k8s objects.
 
 | Versions | 
 |----------|

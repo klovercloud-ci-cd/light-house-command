@@ -1,0 +1,117 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "description": "Klovercloud-light-house-command API",
+    "title": "Klovercloud-ci-light-house-command API",
+    "contact": {}
+  },
+  "paths": {
+    "/api/v1/kube_events": {
+      "post": {
+        "description": "Api for storing all kube events",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "KubeEvents"
+        ],
+        "summary": "Post api",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "allOf": [
+                {
+                  "$ref": "#/definitions/common.ResponseDTO"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/definitions/v1.KubeEventMessage"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/common.ResponseDTO"
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "common.MetaData": {
+      "type": "object",
+      "properties": {
+        "links": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
+        },
+        "page": {
+          "type": "integer"
+        },
+        "page_count": {
+          "type": "integer"
+        },
+        "per_page": {
+          "type": "integer"
+        },
+        "total_count": {
+          "type": "integer"
+        }
+      }
+    },
+    "common.ResponseDTO": {
+      "type": "object",
+      "properties": {
+        "_metadata": {
+          "$ref": "#/definitions/common.MetaData"
+        },
+        "data": {},
+        "message": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    },
+    "v1.KubeEventMessage": {
+      "type": "object",
+      "properties": {
+        "body": {},
+        "header": {
+          "$ref": "#/definitions/v1.MessageHeader"
+        }
+      }
+    },
+    "v1.MessageHeader": {
+      "type": "object",
+      "properties": {
+        "command": {
+          "type": "string"
+        },
+        "extras": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "offset": {
+          "type": "integer"
+        }
+      }
+    }
+  }
+}

@@ -53,7 +53,7 @@ func (obj Deployment) Save(extra map[string]string) error {
 			return err
 		}
 	} else {
-		err := obj.Update(Deployment{Obj:obj.findByNameAndNamespace(), AgentName: obj.AgentName},obj.AgentName)
+		err := obj.Update(Deployment{Obj: obj.findByNameAndNamespace(), AgentName: obj.AgentName}, obj.AgentName)
 		if err != nil {
 			return err
 		}
@@ -115,7 +115,7 @@ func (obj Deployment) Delete(agent string) error {
 	return err
 }
 
-func (obj Deployment) Update(oldObj interface{},agent string) error {
+func (obj Deployment) Update(oldObj interface{}, agent string) error {
 	var oldObject Deployment
 	body, _ := json.Marshal(oldObj)
 	errorOfUnmarshal := json.Unmarshal(body, &oldObject)

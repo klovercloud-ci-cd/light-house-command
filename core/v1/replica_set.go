@@ -51,7 +51,7 @@ func (obj ReplicaSet) Save(extra map[string]string) error {
 			return err
 		}
 	} else {
-		err := obj.Update(ReplicaSet{Obj:obj.findByNameAndNamespace(), AgentName: obj.AgentName},obj.AgentName)
+		err := obj.Update(ReplicaSet{Obj: obj.findByNameAndNamespace(), AgentName: obj.AgentName}, obj.AgentName)
 		if err != nil {
 			return err
 		}
@@ -112,15 +112,15 @@ func (obj ReplicaSet) Delete(agent string) error {
 	return err
 }
 
-func (obj ReplicaSet) Update(oldObj interface{},agent string) error {
+func (obj ReplicaSet) Update(oldObj interface{}, agent string) error {
 	var oldObject ReplicaSet
 	body, _ := json.Marshal(oldObj)
 	errorOfUnmarshal := json.Unmarshal(body, &oldObject)
 	if errorOfUnmarshal != nil {
 		return errorOfUnmarshal
 	}
-	if obj.AgentName == ""{
-		obj.AgentName=agent
+	if obj.AgentName == "" {
+		obj.AgentName = agent
 	}
 	filter := bson.M{
 		"$and": []bson.M{

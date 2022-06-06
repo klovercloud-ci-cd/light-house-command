@@ -52,7 +52,7 @@ func (obj StatefulSet) Save(extra map[string]string) error {
 			return err
 		}
 	} else {
-		err := obj.Update(StatefulSet{Obj:obj.findByNameAndNamespace(), AgentName: obj.AgentName},obj.AgentName)
+		err := obj.Update(StatefulSet{Obj: obj.findByNameAndNamespace(), AgentName: obj.AgentName}, obj.AgentName)
 		if err != nil {
 			return err
 		}
@@ -113,15 +113,15 @@ func (obj StatefulSet) Delete(agent string) error {
 	return err
 }
 
-func (obj StatefulSet) Update(oldObj interface{},agent string) error {
+func (obj StatefulSet) Update(oldObj interface{}, agent string) error {
 	var oldObject StatefulSet
 	body, _ := json.Marshal(oldObj)
 	errorOfUnmarshal := json.Unmarshal(body, &oldObject)
 	if errorOfUnmarshal != nil {
 		return errorOfUnmarshal
 	}
-	if obj.AgentName == ""{
-		obj.AgentName=agent
+	if obj.AgentName == "" {
+		obj.AgentName = agent
 	}
 	filter := bson.M{
 		"$and": []bson.M{

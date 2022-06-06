@@ -7,7 +7,7 @@ import (
 type KubeObject interface {
 	Save(extra map[string]string) error
 	Delete(agent string) error
-	Update(oldObj interface{},agent string) error
+	Update(oldObj interface{}, agent string) error
 }
 
 func GetObject(object enums.RESOURCE_TYPE) KubeObject {
@@ -190,10 +190,9 @@ func GetObject(object enums.RESOURCE_TYPE) KubeObject {
 				},
 			},
 		}
-	}else if object==enums.EVENT{
+	} else if object == enums.EVENT {
 		return &Event{
-			Obj:          K8sEvent{
-			},
+			Obj: K8sEvent{},
 		}
 	}
 	return nil

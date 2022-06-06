@@ -51,7 +51,7 @@ func (obj Pod) Save(extra map[string]string) error {
 			return err
 		}
 	} else {
-		err := obj.Update(Pod{Obj:obj.findByNameAndNamespace(), AgentName: obj.AgentName},obj.AgentName)
+		err := obj.Update(Pod{Obj: obj.findByNameAndNamespace(), AgentName: obj.AgentName}, obj.AgentName)
 		if err != nil {
 			return err
 		}
@@ -139,16 +139,16 @@ func (obj Pod) Delete(agent string) error {
 	return err
 }
 
-func (obj Pod) Update(oldObj interface{},agent string) error {
-	log.Println("Pod:", obj.Obj.Name,", Status: ",obj.Obj.Status.Phase)
+func (obj Pod) Update(oldObj interface{}, agent string) error {
+	log.Println("Pod:", obj.Obj.Name, ", Status: ", obj.Obj.Status.Phase)
 	var oldObject Pod
 	body, _ := json.Marshal(oldObj)
 	errorOfUnmarshal := json.Unmarshal(body, &oldObject)
 	if errorOfUnmarshal != nil {
 		return errorOfUnmarshal
 	}
-	if obj.AgentName == ""{
-		obj.AgentName=agent
+	if obj.AgentName == "" {
+		obj.AgentName = agent
 	}
 	filter := bson.M{
 		"$and": []bson.M{

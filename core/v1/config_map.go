@@ -44,7 +44,7 @@ func NewConfigMap() KubeObject {
 
 func (obj ConfigMap) Save(extra map[string]string) error {
 	obj.AgentName = extra["agent_name"]
-	existing:=obj.findByNameAndNamespace()
+	existing := obj.findByNameAndNamespace()
 	if existing.ObjectMeta.Name == "" {
 		coll := db.GetDmManager().Db.Collection(ConfigmapCollection)
 		_, err := coll.InsertOne(db.GetDmManager().Ctx, obj)
@@ -53,7 +53,7 @@ func (obj ConfigMap) Save(extra map[string]string) error {
 			return err
 		}
 	} else {
-		err := obj.Update(ConfigMap{Obj:obj.findByNameAndNamespace(), AgentName: obj.AgentName},obj.AgentName)
+		err := obj.Update(ConfigMap{Obj: obj.findByNameAndNamespace(), AgentName: obj.AgentName}, obj.AgentName)
 		if err != nil {
 			return err
 		}
@@ -114,15 +114,15 @@ func (obj ConfigMap) Delete(agent string) error {
 	return err
 }
 
-func (obj ConfigMap) Update(oldObj interface{},agent string) error {
+func (obj ConfigMap) Update(oldObj interface{}, agent string) error {
 	var oldObject ConfigMap
 	body, _ := json.Marshal(oldObj)
 	errorOfUnmarshal := json.Unmarshal(body, &oldObject)
 	if errorOfUnmarshal != nil {
 		return errorOfUnmarshal
 	}
-	if obj.AgentName == ""{
-		obj.AgentName=agent
+	if obj.AgentName == "" {
+		obj.AgentName = agent
 	}
 	filter := bson.M{
 		"$and": []bson.M{

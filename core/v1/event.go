@@ -96,7 +96,7 @@ func (e Event) Save(extra map[string]string) error {
 			return err
 		}
 	} else {
-		err := e.Update(Event{Obj:e.findByNameAndNamespace(), AgentName: e.AgentName},e.AgentName)
+		err := e.Update(Event{Obj: e.findByNameAndNamespace(), AgentName: e.AgentName}, e.AgentName)
 		if err != nil {
 			return err
 		}
@@ -120,21 +120,21 @@ func (e Event) Delete(agent string) error {
 	return err
 }
 
-func (e Event) Update(oldObj interface{},agent string) error {
+func (e Event) Update(oldObj interface{}, agent string) error {
 	var oldObject Ingress
 	body, _ := json.Marshal(oldObj)
 	errorOfUnmarshal := json.Unmarshal(body, &oldObject)
 	if errorOfUnmarshal != nil {
 		return errorOfUnmarshal
 	}
-	if e.AgentName == ""{
-		e.AgentName=agent
+	if e.AgentName == "" {
+		e.AgentName = agent
 	}
 	filter := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.name": oldObject.Obj.Name},
 			{"obj.metadata.namespace": oldObject.Obj.Namespace},
-			{"agent_name":agent},
+			{"agent_name": agent},
 		},
 	}
 	update := bson.M{
