@@ -49,6 +49,7 @@ func (obj DaemonSet) Save(extra map[string]string) error {
 			log.Println("[ERROR] Insert document:", err.Error())
 			return err
 		}
+		go AgentIndex{}.Build(obj.Obj.ObjectMeta.Labels["company"], obj.AgentName).Save()
 	} else {
 		err := obj.Update(DaemonSet{Obj: obj.findByNameAndNamespace(), AgentName: obj.AgentName}, obj.AgentName)
 		if err != nil {

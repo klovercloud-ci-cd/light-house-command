@@ -43,8 +43,6 @@ func NewDeployment() KubeObject {
 }
 func (obj Deployment) Save(extra map[string]string) error {
 	obj.AgentName = extra["agent_name"]
-	log.Println(obj)
-	log.Println(obj.findByNameAndNamespace().Name)
 	if obj.findByNameAndNamespace().Name == "" {
 		coll := db.GetDmManager().Db.Collection(DeploymentCollection)
 		_, err := coll.InsertOne(db.GetDmManager().Ctx, obj)
@@ -52,6 +50,7 @@ func (obj Deployment) Save(extra map[string]string) error {
 			log.Println("[ERROR] Insert document:", err.Error())
 			return err
 		}
+		go AgentIndex{}.Build(obj.Obj.ObjectMeta.Labels["company"], obj.AgentName).Save()
 	} else {
 		err := obj.Update(Deployment{Obj: obj.findByNameAndNamespace(), AgentName: obj.AgentName}, obj.AgentName)
 		if err != nil {
