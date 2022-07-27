@@ -14,16 +14,18 @@
 
 ## Responsibility
 
-- Listens Kubernetes events and stores/updates/deletes k8s objects.
+- Listens agent generated kube events via api service.
+- Stores/Modifies/Deletes objects according to events.
 
-| Versions | 
-|----------|
-| 0.0.1    |
+| Versions | Descriptors  |
+|----------|-------------|
+| [v0.0.1-beta](https://github.com/klovercloud-ci-cd/light-house-command/releases/tag/v0.0.1-beta) | [k8s](k8s/v0.0.1-beta) |
+
 
 ## Want to contribute
 
 - See [CONTRIBUTING.md](markdownfiles/CONTRIBUTING.md)
 - See [DEVELOPMENT.md](markdownfiles/DEVELOPMENT.md) to get start
-- See [architecture](https://github.com/klovercloud-ci-cd/architecture)
+- See [architecture](https://github.com/klovercloud-ci-cd/architecture/blob/master/README.md)
 - Look at our
   [our issues](https://github.com/klovercloud-ci-cd/light-house-command/issues)
