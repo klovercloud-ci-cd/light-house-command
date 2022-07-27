@@ -490,7 +490,7 @@ type ObjectMeta struct {
 	DeletionGracePeriodSeconds *int64 `json:"deletionGracePeriodSeconds,omitempty" protobuf:"varint,10,opt,name=deletionGracePeriodSeconds" bson:"deletionGracePeriodSeconds"`
 
 	// Map of string keys and values that can be used to organize and categorize
-	// (scope and select) objects. May match selectors of replication controllers
+	// (scope and select) objects. May match selectors of replication service
 	// and services.
 	// More info: http://kubernetes.io/docs/user-guide/labels
 	// +optional
@@ -2025,7 +2025,7 @@ type Container struct {
 	// Docker image name.
 	// More info: https://kubernetes.io/docs/concepts/containers/images
 	// This field is optional to allow higher level config management to default or override
-	// container images in workload controllers like Deployments and StatefulSets.
+	// container images in workload service like Deployments and StatefulSets.
 	// +optional
 	Image string `json:"image,omitempty" protobuf:"bytes,2,opt,name=image" bson:"image"`
 	// Entrypoint array. Not executed within a shell.
