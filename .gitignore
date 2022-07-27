@@ -6,4 +6,3 @@
 /out/
 *.exe
 .env
-/k8s/
