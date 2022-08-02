@@ -44,7 +44,7 @@ func NewConfigMap() KubeObject {
 
 func (obj ConfigMap) Save(extra map[string]string) error {
 	obj.AgentName = extra["agent_name"]
-	existing := obj.findByNameAndNamespace()
+	existing := obj.findByNameAndNamespaceAndCompanyId()
 	if existing.ObjectMeta.Name == "" {
 		coll := db.GetDmManager().Db.Collection(ConfigmapCollection)
 		_, err := coll.InsertOne(db.GetDmManager().Ctx, obj)
@@ -53,7 +53,7 @@ func (obj ConfigMap) Save(extra map[string]string) error {
 			return err
 		}
 	} else {
-		err := obj.Update(ConfigMap{Obj: obj.findByNameAndNamespace(), AgentName: obj.AgentName}, obj.AgentName)
+		err := obj.Update(ConfigMap{Obj: obj.findByNameAndNamespaceAndCompanyId(), AgentName: obj.AgentName}, obj.AgentName)
 		if err != nil {
 			return err
 		}
@@ -79,11 +79,12 @@ func (obj ConfigMap) findById() K8sConfigMap {
 	return temp.Obj
 }
 
-func (object ConfigMap) findByNameAndNamespace() K8sConfigMap {
+func (object ConfigMap) findByNameAndNamespaceAndCompanyId() K8sConfigMap {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.name": object.Obj.Name},
 			{"obj.metadata.namespace": object.Obj.Namespace},
+			{"obj.metadata.labels.company": object.Obj.ObjectMeta.Labels["company"]},
 			{"agent_name": object.AgentName},
 		},
 	}

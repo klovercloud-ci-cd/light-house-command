@@ -44,7 +44,7 @@ func NewIngress() KubeObject {
 
 func (obj Ingress) Save(extra map[string]string) error {
 	obj.AgentName = extra["agent_name"]
-	if obj.findByNameAndNamespace().Name == "" {
+	if obj.findByNameAndNamespaceAndCompanyId().Name == "" {
 		coll := db.GetDmManager().Db.Collection(IngressCollection)
 		_, err := coll.InsertOne(db.GetDmManager().Ctx, obj)
 		if err != nil {
@@ -52,7 +52,7 @@ func (obj Ingress) Save(extra map[string]string) error {
 			return err
 		}
 	} else {
-		err := obj.Update(Ingress{Obj: obj.findByNameAndNamespace(), AgentName: obj.AgentName}, obj.AgentName)
+		err := obj.Update(Ingress{Obj: obj.findByNameAndNamespaceAndCompanyId(), AgentName: obj.AgentName}, obj.AgentName)
 		if err != nil {
 			return err
 		}
@@ -77,11 +77,12 @@ func (obj Ingress) findById() K8sIngress {
 	}
 	return temp.Obj
 }
-func (obj Ingress) findByNameAndNamespace() K8sIngress {
+func (obj Ingress) findByNameAndNamespaceAndCompanyId() K8sIngress {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.name": obj.Obj.Name},
 			{"obj.metadata.namespace": obj.Obj.Namespace},
+			{"obj.metadata.labels.company": obj.Obj.ObjectMeta.Labels["company"]},
 			{"agent_name": obj.AgentName},
 		},
 	}

@@ -60,10 +60,11 @@ func (obj PersistentVolumeClaim) Save(extra map[string]string) error {
 	return nil
 }
 
-func (obj PersistentVolumeClaim) findByNameAndAgentName() K8sPersistentVolume {
+func (obj PersistentVolumeClaim) findByNameAndAgentNameAndCompanyId() K8sPersistentVolume {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.name": obj.Obj.Name},
+			{"obj.metadata.labels.company": obj.Obj.ObjectMeta.Labels["company"]},
 			{"agent_name": obj.AgentName},
 		},
 	}

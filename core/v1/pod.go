@@ -43,7 +43,7 @@ func NewPod() KubeObject {
 
 func (obj Pod) Save(extra map[string]string) error {
 	obj.AgentName = extra["agent_name"]
-	if obj.findByNameAndNamespace().Name == "" {
+	if obj.findByNameAndNamespaceAndCompanyId().Name == "" {
 		coll := db.GetDmManager().Db.Collection(PodCollection)
 		_, err := coll.InsertOne(db.GetDmManager().Ctx, obj)
 		if err != nil {
@@ -51,7 +51,7 @@ func (obj Pod) Save(extra map[string]string) error {
 			return err
 		}
 	} else {
-		err := obj.Update(Pod{Obj: obj.findByNameAndNamespace(), AgentName: obj.AgentName}, obj.AgentName)
+		err := obj.Update(Pod{Obj: obj.findByNameAndNamespaceAndCompanyId(), AgentName: obj.AgentName}, obj.AgentName)
 		if err != nil {
 			return err
 		}
@@ -77,11 +77,12 @@ func (obj Pod) findById() K8sPod {
 	return temp.Obj
 }
 
-func (obj Pod) findByNameAndNamespace() K8sPod {
+func (obj Pod) findByNameAndNamespaceAndCompanyId() K8sPod {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.name": obj.Obj.Name},
 			{"obj.metadata.namespace": obj.Obj.Namespace},
+			{"obj.metadata.labels.company": obj.Obj.ObjectMeta.Labels["company"]},
 			{"agent_name": obj.AgentName},
 		},
 	}
