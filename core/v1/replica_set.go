@@ -43,7 +43,7 @@ func NewReplicaSet() KubeObject {
 
 func (obj ReplicaSet) Save(extra map[string]string) error {
 	obj.AgentName = extra["agent_name"]
-	if obj.findByNameAndNamespace().Name == "" {
+	if obj.findByNameAndNamespaceAndCompanyId().Name == "" {
 		coll := db.GetDmManager().Db.Collection(ReplicaSetCollection)
 		_, err := coll.InsertOne(db.GetDmManager().Ctx, obj)
 		if err != nil {
@@ -51,7 +51,7 @@ func (obj ReplicaSet) Save(extra map[string]string) error {
 			return err
 		}
 	} else {
-		err := obj.Update(ReplicaSet{Obj: obj.findByNameAndNamespace(), AgentName: obj.AgentName}, obj.AgentName)
+		err := obj.Update(ReplicaSet{Obj: obj.findByNameAndNamespaceAndCompanyId(), AgentName: obj.AgentName}, obj.AgentName)
 		if err != nil {
 			return err
 		}
@@ -77,11 +77,12 @@ func (obj ReplicaSet) findById() K8sReplicaSet {
 	return temp.Obj
 }
 
-func (obj ReplicaSet) findByNameAndNamespace() K8sReplicaSet {
+func (obj ReplicaSet) findByNameAndNamespaceAndCompanyId() K8sReplicaSet {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.namespace": obj.Obj.Namespace},
 			{"obj.metadata.name": obj.Obj.Name},
+			{"obj.metadata.namespace.labels.company": obj.Obj.ObjectMeta.Labels["company"]},
 			{"agent_name": obj.AgentName},
 		},
 	}
