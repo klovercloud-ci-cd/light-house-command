@@ -44,7 +44,7 @@ func NewStatefulSet() KubeObject {
 
 func (obj StatefulSet) Save(extra map[string]string) error {
 	obj.AgentName = extra["agent_name"]
-	if obj.findByNameAndNamespace().Name == "" {
+	if obj.findByNameAndNamespaceAndCompanyId().Name == "" {
 		coll := db.GetDmManager().Db.Collection(StatefulSetCollection)
 		_, err := coll.InsertOne(db.GetDmManager().Ctx, obj)
 		if err != nil {
@@ -53,7 +53,7 @@ func (obj StatefulSet) Save(extra map[string]string) error {
 		}
 		go AgentIndex{}.Build(obj.Obj.ObjectMeta.Labels["company"], obj.AgentName).Save()
 	} else {
-		err := obj.Update(StatefulSet{Obj: obj.findByNameAndNamespace(), AgentName: obj.AgentName}, obj.AgentName)
+		err := obj.Update(StatefulSet{Obj: obj.findByNameAndNamespaceAndCompanyId(), AgentName: obj.AgentName}, obj.AgentName)
 		if err != nil {
 			return err
 		}
@@ -79,11 +79,12 @@ func (obj StatefulSet) findById() K8sStatefulSet {
 	return temp.Obj
 }
 
-func (obj StatefulSet) findByNameAndNamespace() K8sStatefulSet {
+func (obj StatefulSet) findByNameAndNamespaceAndCompanyId() K8sStatefulSet {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.name": obj.Obj.Name},
 			{"obj.metadata.namespace": obj.Obj.Namespace},
+			{"obj.metadata.namespace.labels.company": obj.Obj.ObjectMeta.Labels["company"]},
 			{"agent_name": obj.AgentName},
 		},
 	}
