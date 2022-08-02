@@ -83,7 +83,7 @@ func (obj Deployment) findByNameAndNamespaceAndCompanyId() K8sDeployment {
 		"$and": []bson.M{
 			{"obj.metadata.name": obj.Obj.Name},
 			{"obj.metadata.namespace": obj.Obj.Namespace},
-			{"obj.metadata.namespace.labels.company": obj.Obj.ObjectMeta.Labels["company"]},
+			{"obj.metadata.labels.company": obj.Obj.ObjectMeta.Labels["company"]},
 			{"agent_name": obj.AgentName},
 		},
 	}
