@@ -82,7 +82,7 @@ func (obj ReplicaSet) findByNameAndNamespaceAndCompanyId() K8sReplicaSet {
 		"$and": []bson.M{
 			{"obj.metadata.namespace": obj.Obj.Namespace},
 			{"obj.metadata.name": obj.Obj.Name},
-			{"obj.metadata.namespace.labels.company": obj.Obj.ObjectMeta.Labels["company"]},
+			{"obj.metadata.labels.company": obj.Obj.ObjectMeta.Labels["company"]},
 			{"agent_name": obj.AgentName},
 		},
 	}
