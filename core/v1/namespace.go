@@ -50,7 +50,7 @@ func NewNamespace() KubeObject {
 
 func (obj Namespace) Save(extra map[string]string) error {
 	obj.AgentName = extra["agent_name"]
-	if obj.findByNamespaceAndAgentName().Name == "" {
+	if obj.findByNamespaceAndAgentNameAndCompanyId().Name == "" {
 		coll := db.GetDmManager().Db.Collection(NamespaceCollection)
 		_, err := coll.InsertOne(db.GetDmManager().Ctx, obj)
 		if err != nil {
@@ -70,6 +70,7 @@ func (object Namespace) findByName() K8sNamespace {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.name": object.Obj.Namespace},
+			{"obj.metadata.labels.company": object.Obj.ObjectMeta.Labels["company"]},
 			{"agent_name": object.AgentName},
 		},
 	}
@@ -84,10 +85,11 @@ func (object Namespace) findByName() K8sNamespace {
 	return temp.Obj
 }
 
-func (object Namespace) findByNamespaceAndAgentName() K8sNamespace {
+func (object Namespace) findByNamespaceAndAgentNameAndCompanyId() K8sNamespace {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.name": object.Obj.Name},
+			{"obj.metadata.labels.company": object.Obj.ObjectMeta.Labels["company"]},
 			{"agent_name": object.AgentName},
 		},
 	}

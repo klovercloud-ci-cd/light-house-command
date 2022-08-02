@@ -43,7 +43,7 @@ func NewRole() KubeObject {
 
 func (obj Role) Save(extra map[string]string) error {
 	obj.AgentName = extra["agent_name"]
-	if obj.findByNameAndNamespace().Name == "" {
+	if obj.findByNameAndNamespaceAndCompanyId().Name == "" {
 		coll := db.GetDmManager().Db.Collection(RoleCollection)
 		_, err := coll.InsertOne(db.GetDmManager().Ctx, obj)
 		if err != nil {
@@ -51,7 +51,7 @@ func (obj Role) Save(extra map[string]string) error {
 			return err
 		}
 	} else {
-		err := obj.Update(Role{Obj: obj.findByNameAndNamespace(), AgentName: obj.AgentName}, obj.AgentName)
+		err := obj.Update(Role{Obj: obj.findByNameAndNamespaceAndCompanyId(), AgentName: obj.AgentName}, obj.AgentName)
 		if err != nil {
 			return err
 		}
@@ -77,11 +77,12 @@ func (obj Role) findById() K8sRole {
 	return temp.Obj
 }
 
-func (obj Role) findByNameAndNamespace() K8sRole {
+func (obj Role) findByNameAndNamespaceAndCompanyId() K8sRole {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.namespace": obj.Obj.Namespace},
 			{"obj.metadata.name": obj.Obj.Name},
+			{"obj.metadata.labels.company": obj.Obj.ObjectMeta.Labels["company"]},
 			{"agent_name": obj.AgentName},
 		},
 	}

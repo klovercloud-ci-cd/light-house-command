@@ -45,7 +45,7 @@ func NewServiceAccount() KubeObject {
 
 func (obj ServiceAccount) Save(extra map[string]string) error {
 	obj.AgentName = extra["agent_name"]
-	if obj.findByNameAndNamespace().Name == "" {
+	if obj.findByNameAndNamespaceAndCompanyId().Name == "" {
 		coll := db.GetDmManager().Db.Collection(ServiceAccountCollection)
 		_, err := coll.InsertOne(db.GetDmManager().Ctx, obj)
 		if err != nil {
@@ -53,7 +53,7 @@ func (obj ServiceAccount) Save(extra map[string]string) error {
 			return err
 		}
 	} else {
-		err := obj.Update(ServiceAccount{Obj: obj.findByNameAndNamespace(), AgentName: obj.AgentName}, obj.AgentName)
+		err := obj.Update(ServiceAccount{Obj: obj.findByNameAndNamespaceAndCompanyId(), AgentName: obj.AgentName}, obj.AgentName)
 		if err != nil {
 			return err
 		}
@@ -79,11 +79,12 @@ func (obj ServiceAccount) findById() K8sServiceAccount {
 	return temp.Obj
 }
 
-func (obj ServiceAccount) findByNameAndNamespace() K8sServiceAccount {
+func (obj ServiceAccount) findByNameAndNamespaceAndCompanyId() K8sServiceAccount {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.name": obj.Obj.Name},
 			{"obj.metadata.namespace": obj.Obj.Namespace},
+			{"obj.metadata.labels.company": obj.Obj.ObjectMeta.Labels["company"]},
 			{"agent_name": obj.AgentName},
 		},
 	}

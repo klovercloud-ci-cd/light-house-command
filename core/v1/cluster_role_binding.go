@@ -44,7 +44,7 @@ func NewClusterRoleBinding() KubeObject {
 
 func (obj ClusterRoleBinding) Save(extra map[string]string) error {
 	obj.AgentName = extra["agent_name"]
-	if obj.findByName().Name == "" {
+	if obj.findByNameAndCompanyId().Name == "" {
 		coll := db.GetDmManager().Db.Collection(ClusterRoleBindingCollection)
 		_, err := coll.InsertOne(db.GetDmManager().Ctx, obj)
 		if err != nil {
@@ -52,7 +52,7 @@ func (obj ClusterRoleBinding) Save(extra map[string]string) error {
 			return err
 		}
 	} else {
-		err := obj.Update(ClusterRoleBinding{Obj: obj.findByName(), AgentName: obj.AgentName}, obj.AgentName)
+		err := obj.Update(ClusterRoleBinding{Obj: obj.findByNameAndCompanyId(), AgentName: obj.AgentName}, obj.AgentName)
 		if err != nil {
 			return err
 		}
@@ -78,10 +78,11 @@ func (obj ClusterRoleBinding) findById() k8sClusterRoleBinding {
 	return temp.Obj
 }
 
-func (object ClusterRoleBinding) findByName() k8sClusterRoleBinding {
+func (object ClusterRoleBinding) findByNameAndCompanyId() k8sClusterRoleBinding {
 	query := bson.M{
 		"$and": []bson.M{
 			{"obj.metadata.name": object.Obj.Name},
+			{"obj.metadata.labels.company": object.Obj.ObjectMeta.Labels["company"]},
 			{"agent_name": object.AgentName},
 		},
 	}
