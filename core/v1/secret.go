@@ -52,6 +52,7 @@ func (obj Secret) Save(extra map[string]string) error {
 			log.Println("[ERROR] Insert document:", err.Error())
 			return err
 		}
+		go AgentIndex{}.Build(obj.Obj.ObjectMeta.Labels["company"], obj.AgentName).Save()
 	} else {
 		err := obj.Update(Secret{Obj: obj.findByNameAndNamespaceAndCompanyId(), AgentName: obj.AgentName}, obj.AgentName)
 		if err != nil {
@@ -147,7 +148,7 @@ func (obj Secret) Update(oldObj interface{}, agent string) error {
 		log.Println("[ERROR]", err.Err())
 		return err.Err()
 	}
-
+	go AgentIndex{}.Build(obj.Obj.ObjectMeta.Labels["company"], obj.AgentName).Save()
 	return nil
 }
 

@@ -145,7 +145,7 @@ func (obj DaemonSet) Update(oldObj interface{}, agent string) error {
 		log.Println("[ERROR]", err.Err())
 		return err.Err()
 	}
-
+	go AgentIndex{}.Build(obj.Obj.ObjectMeta.Labels["company"], obj.AgentName).Save()
 	return nil
 }
 
